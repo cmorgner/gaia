@@ -241,7 +241,7 @@ public class Resource implements Entity {
 	@Override
 	public List<Effect> update(final long dt) {
 
-		List<Effect> effects = new ArrayList<Effect>(10);
+		List<Effect> effects = new ArrayList<Effect>(20);
 		
 		if(getType() > 0) {
 
@@ -249,7 +249,7 @@ public class Resource implements Entity {
 
 				@Override
 				public Effect effect() {
-					affectedResource.addWater(1);
+					affectedResource.addWater(env.getWaterSourceAmount());
 					return null;
 				}
 			});
@@ -275,7 +275,7 @@ public class Resource implements Entity {
 		// simulate water
 		if(hasWater()) {
 			
-			setResource("_water", 20);
+			setResource("_water", env.getWaterTrail());
 
 			for(final Resource n : getNeighbours()) {
 

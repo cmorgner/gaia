@@ -1,6 +1,7 @@
 package com.morgner.gaia;
 
 import java.awt.BorderLayout;
+import java.awt.Button;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.*;
@@ -9,20 +10,27 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 /**
  *
  * @author Christian Morgner
  */
-public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMotionListener, MouseWheelListener, ActionListener {
+public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMotionListener, MouseWheelListener, ActionListener, ChangeListener {
 	
 	public static final Random rand = new Random(2);
 	
+	private Dimension buttonDimension = new Dimension(160, 25);
 	private JToggleButton elevateButton = null;
 	private JToggleButton lowerButton = null;
 	private JToggleButton addWaterButton = null;
 	private JToggleButton removeWaterButton = null;
 	private JToggleButton addFireButton = null;
+	
+	private JSlider waterSourceAmountSlider = null;
+	private JSlider waterTrailSlider = null;
+	private JSlider plantsSlider = null;
 	
 	private ScheduledExecutorService timer = null;
 	private boolean running = false;
@@ -60,33 +68,28 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		environment = new Environment(cellSize, width, height, viewportWidth, viewportHeight);
 		canvas = new Canvas(environment);
 		
-		JPanel buttonPanel = new JPanel(new FlowLayout());
-		buttonPanel.setPreferredSize(new Dimension(194, viewportHeight * cellSize));
+		JPanel controlsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+		controlsPanel.setPreferredSize(new Dimension(194, viewportHeight * cellSize));
+
+		ButtonGroup buttonGroup = new ButtonGroup();
 		
-		lowerButton = new JToggleButton("Lower Terrain");
-		lowerButton.addActionListener(this);
-		lowerButton.setSelected(true);
-		buttonPanel.add(lowerButton);
+		// toggle buttons
+		lowerButton = addToggleButton(controlsPanel, buttonGroup, "Lower Terrain");
+		elevateButton = addToggleButton(controlsPanel, buttonGroup, "Elevate Terrain");
+		addWaterButton = addToggleButton(controlsPanel, buttonGroup, "Add Water");
+		removeWaterButton = addToggleButton(controlsPanel, buttonGroup, "Remove Water");
+		addFireButton = addToggleButton(controlsPanel, buttonGroup, "Set Fire");
 		
-		elevateButton = new JToggleButton("Elevate Terrain");
-		elevateButton.addActionListener(this);
-		buttonPanel.add(elevateButton);
+		controlsPanel.add(Box.createRigidArea(buttonDimension));
 		
-		addWaterButton = new JToggleButton("Add Water");
-		addWaterButton.addActionListener(this);
-		buttonPanel.add(addWaterButton);
-		
-		removeWaterButton = new JToggleButton("Remove Water");
-		removeWaterButton.addActionListener(this);
-		buttonPanel.add(removeWaterButton);
-		
-		addFireButton = new JToggleButton("Set Fire");
-		addFireButton.addActionListener(this);
-		buttonPanel.add(addFireButton);
+		// sliders
+		waterTrailSlider = addSlider(controlsPanel, "Water trail length", 2, 20, 10);
+		waterSourceAmountSlider = addSlider(controlsPanel, "Water source strength", 0, 5, 2);
+		plantsSlider = addSlider(controlsPanel, "Plant growth", 0, 6, 1);
 		
 		getContentPane().setLayout(new BorderLayout());
 		getContentPane().add(canvas, BorderLayout.CENTER);
-		getContentPane().add(buttonPanel, BorderLayout.EAST);
+		getContentPane().add(controlsPanel, BorderLayout.EAST);
 		
 		pack();
 		
@@ -122,6 +125,28 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		running = true;
 	}
 
+	private JSlider addSlider(JPanel controlsPanel, String label, int min, int max, int value) {
+		
+		JSlider slider = new JSlider(min, max, value);
+		slider.setPreferredSize(buttonDimension);
+		slider.addChangeListener(this);
+		controlsPanel.add(new JLabel(label));
+		controlsPanel.add(slider);
+
+		return slider;
+	}
+	
+	private JToggleButton addToggleButton(JPanel controlsPanel, ButtonGroup buttonGroup, String label) {
+		
+		JToggleButton button = new JToggleButton(label);
+		button.setPreferredSize(buttonDimension);
+		button.addActionListener(this);
+		controlsPanel.add(button);
+		buttonGroup.add(button);
+		
+		return button;
+	}
+	
 	@Override
 	public void finalize() throws Throwable
 	{
@@ -306,34 +331,31 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		
 		if(e.getSource().equals(lowerButton)) {
 			level = -50;
-			elevateButton.setSelected(false);
-			addWaterButton.setSelected(false);
-			removeWaterButton.setSelected(false);
-			addFireButton.setSelected(false);
 		} else if(e.getSource().equals(elevateButton)) {
 			level = 50;
-			lowerButton.setSelected(false);
-			addWaterButton.setSelected(false);
-			removeWaterButton.setSelected(false);
-			addFireButton.setSelected(false);
 		} else if(e.getSource().equals(addWaterButton)) {
-			water = 25;
-			elevateButton.setSelected(false);
-			lowerButton.setSelected(false);
-			removeWaterButton.setSelected(false);
-			addFireButton.setSelected(false);
+			water = 2;
 		} else if(e.getSource().equals(removeWaterButton)) {
 			water = -255;
-			elevateButton.setSelected(false);
-			lowerButton.setSelected(false);
-			addWaterButton.setSelected(false);
-			addFireButton.setSelected(false);
 		} else if(e.getSource().equals(addFireButton)) {
-			elevateButton.setSelected(false);
-			lowerButton.setSelected(false);
-			addWaterButton.setSelected(false);
-			removeWaterButton.setSelected(false);
 			fire = true;
+		}
+	}
+
+	@Override
+	public void stateChanged(ChangeEvent e) {
+		
+		if(e.getSource().equals(waterTrailSlider)) {
+			
+			environment.setWaterTrail(waterTrailSlider.getValue());
+			
+		} else if(e.getSource().equals(waterSourceAmountSlider)) {
+			
+			environment.setWaterSourceAmount(waterSourceAmountSlider.getValue());
+			
+		} else if(e.getSource().equals(plantsSlider)) {
+			
+			environment.setPlantsFactor(plantsSlider.getValue());
 		}
 	}
 	

@@ -27,7 +27,7 @@ public class FireEffect extends Effect{
 
 				for(Resource n : affectedResource.getNeighbours()) {
 					
-					if(n.hasResource("plants") && Gaia.rand.nextDouble() > 0.9) {
+					if(n.hasResource("plants") && Gaia.rand.nextDouble() > 0.75) {
 						n.setResource("fire", 1);
 					}
 				}

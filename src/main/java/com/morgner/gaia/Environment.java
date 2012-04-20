@@ -4,6 +4,8 @@ import java.awt.Graphics;
 import java.awt.Point;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 /**
  *
@@ -31,13 +33,15 @@ public class Environment {
 	private int terrainGenerationConstant = 50;
 	private int terrainSmoothingIterations = 4;
 	
+	private int waterSourceAmount = 2;
 	private int waterSources = 20;
-	
+	private int waterTrail = 20;
 	private int minHeight = 0;
 	private int maxHeight = 0;
 	private int treeLine = 0;
 	private int seaLevel = 0;
 	private int seaWaterHeight = 10;
+	private int plantsFactor = 1;
 	
 	private double treeLineFactor = 0.75;
 	private double seaLevelFactor = 0.2;
@@ -522,5 +526,29 @@ public class Environment {
 		if(activeResources.contains(res)) {
 			pendingRemovalResources.add(res);
 		}
+	}
+
+	public int getWaterTrail() {
+		return waterTrail;
+	}
+
+	public void setWaterTrail(int waterTrail) {
+		this.waterTrail = waterTrail;
+	}
+
+	public int getWaterSourceAmount() {
+		return waterSourceAmount;
+	}
+
+	public void setWaterSourceAmount(int waterSourceAmount) {
+		this.waterSourceAmount = waterSourceAmount;
+	}
+
+	public int getPlantsFactor() {
+		return plantsFactor;
+	}
+
+	public void setPlantsFactor(int plantsFactor) {
+		this.plantsFactor = plantsFactor;
 	}
 }

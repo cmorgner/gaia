@@ -25,10 +25,12 @@ public class PlantsEffect extends Effect {
 		int neighboursWithWater = 0;
 
 		for(Resource n : affectedResource.getNeighbours()) {
+			
 			if(n.hasWater()) {
 				neighboursWithWater++;
 			}
-			if(n.hasResource("plants")) {
+			
+			if(n.hasResource("plants")) { // && n.getTerrain() >= affectedResource.getTerrain() + 5) {
 				neighboursWithPlants++;
 			}
 		}
@@ -56,26 +58,25 @@ public class PlantsEffect extends Effect {
 		}
 
 
-		if(neighboursWithWater >= 3 || neighboursWithPlants >= 3) {
+		if(neighboursWithWater == 4 || neighboursWithPlants >= 2) {
 
 			int existingPlants = affectedResource.getResource("plants");
 
 			if(!affectedResource.hasResource("fire")) {
 
-				if(existingPlants == 0) {
+				if(Gaia.rand.nextDouble() > Math.pow(0.99, affectedResource.getEnvironment().getPlantsFactor())) {
+					
+					if(existingPlants == 0) {
 
-					// plant will be added, set randomized maximum age
-					affectedResource.setResource("plantsMaxAge", Gaia.rand.nextInt(1000));
-				}
+						// plant will be added, set randomized maximum age
+						affectedResource.setResource("plantsMaxAge", Gaia.rand.nextInt(1000));
+					}
 
-				if(existingPlants < 25) {
-					affectedResource.addResource("plants", 1);
+					if(existingPlants < 25) {
+						affectedResource.addResource("plants", 1);
+					}
 				}
 			}
-
-		} else {
-
-			affectedResource.addResource("plants", -1);
 		}
 		
 		return null;
