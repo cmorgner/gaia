@@ -33,13 +33,13 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	private int viewportWidth = 100;
 	private int viewportHeight = 100;
 	private boolean fire = false;
-	private int width = 257; // 1025;
-	private int height = 257; // 1025;
+	private int width = 513;
+	private int height = 513;
 	private int cellSize = 10;
 	private int level = -6;
 	private int keyMask = 0;
 	private int water = 0;
-	private long dt = 20;
+	private long dt = 0;
 	private long gt = 20;
 	
 	private static final int LEFT   = 1;
@@ -109,8 +109,6 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 						update();
 					}
 				}, dt, TimeUnit.MILLISECONDS);
-
-
 			}
 		}, 0, TimeUnit.MILLISECONDS);
 		
@@ -146,6 +144,7 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 				break;
 			
 			case 'q':
+				running = false;
 				timer.shutdownNow();
 				try { Thread.sleep(dt*2); } catch(Throwable t) {}
 				System.exit(0);
@@ -194,7 +193,7 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 					}
 				}, dt, TimeUnit.MILLISECONDS);
 				
-			} catch(Throwable t) {}
+			} catch(Throwable t) {t.printStackTrace();}
 		}
 		
 	}

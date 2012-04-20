@@ -13,7 +13,7 @@ import java.util.*;
  */
 public class Resource implements Entity {
 
-	private Map<String, Integer> resources = new HashMap<String, Integer>();
+	private final Map<String, Integer> resources = new HashMap<String, Integer>();
 	private Environment env = null;
 	private int terrain = 0;
 	private int water = 0;
@@ -83,6 +83,7 @@ public class Resource implements Entity {
 	
 	public void setResource(String name, int amount) {
 		resources.put(name, amount);
+		env.activate(this);
 	}
 	
 	public void addResource(String name) {
@@ -93,6 +94,8 @@ public class Resource implements Entity {
 
 		int resourceAmount = getResource(name);
 		resources.put(name, resourceAmount + amount);
+
+		env.activate(this);
 	}
 	
 	public int getResource(String name) {
@@ -238,7 +241,7 @@ public class Resource implements Entity {
 	@Override
 	public List<Effect> update(final long dt) {
 
-		List<Effect> effects = new LinkedList<Effect>();
+		List<Effect> effects = new ArrayList<Effect>(10);
 		
 		if(getType() > 0) {
 
@@ -359,6 +362,10 @@ public class Resource implements Entity {
 			});
 		}
 		
+		if(effects.isEmpty()) {
+			env.deactivate(this);
+		}
+		
 		return effects;
 	}
 	
@@ -413,10 +420,12 @@ public class Resource implements Entity {
 
 	public void setWater(int water) {
 		this.water = water;
+		env.activate(this);
 	}
 	
 	public void addWater(int amount) {
 		this.water += amount;
+		env.activate(this);
 	}
 	
 	public boolean hasWater() {

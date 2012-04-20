@@ -11,6 +11,10 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  */
 public class Environment {
 
+	private final Set<Resource> pendingAdditionResources = new LinkedHashSet<Resource>();
+	private final Set<Resource> pendingRemovalResources = new LinkedHashSet<Resource>();
+	private final Set<Resource> activeResources = new LinkedHashSet<Resource>();
+	private final Queue<Effect> effects = new ConcurrentLinkedQueue<Effect>();
 	private List<Entity> entities = new LinkedList<Entity>();
 	private Resource[][] resources = null;
 	private int cellSize = 0;
@@ -180,17 +184,10 @@ public class Environment {
 	}
 
 	public void update(long dt) {
-
-		// update resources
-		Queue<Effect> effects = new ConcurrentLinkedQueue<Effect>();
 		
 		// collect effects from environment
-		for(int i=0; i<getWidth(); i++) {
-			for(int j=0; j<getHeight(); j++) {
-				
-				List<Effect> e = resources[i][j].update(dt);
-				effects.addAll(e);
-			}
+		for(Resource res : activeResources) {
+			effects.addAll(res.update(dt));
 		}
 
 		// collect effects from entities
@@ -198,24 +195,22 @@ public class Environment {
 			List<Effect> e = entity.update(dt);
 			effects.addAll(e);
 		}
-
-		
 		
 		// apply effects on environment
 		while(effects.peek() != null) {
 
 			Effect e = effects.poll();
-			try {
-				
-				Effect secondary = e.effect();
-				if(secondary != null) {
-					effects.add(secondary);
-				}
-				
-			} catch(Throwable t) {
-				t.printStackTrace();
+			
+			Effect secondary = e.effect();
+			if(secondary != null) {
+				effects.add(secondary);
 			}
 		}
+		
+		activeResources.removeAll(pendingRemovalResources);
+		activeResources.addAll(pendingAdditionResources);
+		pendingAdditionResources.clear();
+		pendingRemovalResources.clear();
 	}
 	
 	public void draw(Graphics g) {
@@ -505,5 +500,27 @@ public class Environment {
 	
 	public int getSeaWaterHeight() {
 		return seaWaterHeight;
+	}
+	
+	public void activate(Resource res) {
+		if(!activeResources.contains(res)) {
+			pendingAdditionResources.add(res);
+			
+			/*
+			// add neighbours too
+			for(Resource n : res.getNeighbours()) {
+				if(!activeResources.contains(n)) {
+					pendingAdditionResources.add(n);
+				}
+			}
+			 * 
+			 */
+		}
+	}
+	
+	public void deactivate(Resource res) {
+		if(activeResources.contains(res)) {
+			pendingRemovalResources.add(res);
+		}
 	}
 }
