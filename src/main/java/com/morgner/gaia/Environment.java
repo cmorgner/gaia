@@ -44,7 +44,7 @@ public class Environment {
 	private int plantsFactor = 1;
 	
 	private double treeLineFactor = 0.75;
-	private double seaLevelFactor = 0.2;
+	private double seaLevelFactor = 0.1;
 	
 	public Environment(int r, int width, int height, int viewportWidth, int viewportHeight) {
 		
@@ -138,6 +138,8 @@ public class Environment {
 		
 		maxHeight -= minHeight;
 		minHeight = 0;
+		
+		System.out.println("minHeight: " + minHeight + ", maxHeight: " + maxHeight);
 		
 		// set tree line (max height of plant growth
 		treeLine = (int)Math.rint((double)maxHeight * treeLineFactor);

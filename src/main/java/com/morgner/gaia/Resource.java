@@ -185,25 +185,11 @@ public class Resource implements Entity {
 				b = 240 - d;
 			}
 			
-		} else if(_water > 8) {
-			
-			b = 255 - _water;
-			if(b <   0) b = 0;
-			if(b > 255) b = 255;
-
-			g = _water / 8;
-			if(g <   0) g = 0;
-			if(g > 255) g = 255;
-
 		} else if(_water > 0) {
 
-			b = 255 - (_water*_water);
-			if(b <   0) b = 0;
+			b = 255 - _water;
+			if(b <  64) b =  64;
 			if(b > 255) b = 255;
-
-			g = _water / 8;
-			if(g <   0) g = 0;
-			if(g > 255) g = 255;
 			
 		} else if(plants > 0) {
 
@@ -277,7 +263,16 @@ public class Resource implements Entity {
 			
 			setResource("_water", env.getWaterTrail());
 
-			for(final Resource n : getNeighbours()) {
+			List<Resource> sortedNeighbours = new ArrayList<Resource>(8);
+			sortedNeighbours.addAll(getNeighbours(false, false));
+			
+			Collections.sort(sortedNeighbours, new Comparator<Resource>() {
+				@Override public int compare(Resource o1, Resource o2) {
+					return new Integer(o1.getTerrain()).compareTo(new Integer(o2.getTerrain()));
+				}
+			});
+			
+			for(final Resource n : sortedNeighbours) {
 
 				effects.add(new Effect(n) {
 
@@ -311,7 +306,20 @@ public class Resource implements Entity {
 
 							if(combinedLocalHeight > combinedNeighbourHeight) {
 								
-								if(localWater > neighbourWater) {
+								if(combinedLocalHeight > neighbourTerrain) {
+									
+									if(localWater > 0) {
+										int dh = combinedLocalHeight - neighbourTerrain;
+										int amount = Math.min(dh, localWater);
+
+										int v = amount / 8;
+										int d = amount % 8;
+
+										affectedResource.addWater(v+d);
+										addWater(-(v+d));
+									}
+									
+								} else if(localWater > neighbourWater) {
 									
 									int d = localWater - neighbourWater;
 									
@@ -344,9 +352,9 @@ public class Resource implements Entity {
 			}
 
 			// evaporization
-			if(Gaia.rand.nextDouble() > (Math.pow(0.99, 1.0 / (double)getWater()))) {
-				addWater(-1);
-			}
+//			if(Gaia.rand.nextDouble() > (Math.pow(0.99, 1.0 / (double)getWater()))) {
+//				addWater(-1);
+//			}
 			
 		} else {
 			addResource("_water", -1);			
@@ -408,6 +416,9 @@ public class Resource implements Entity {
 
 	public void setTerrain(int terrain) {
 		this.terrain = terrain;
+		if(terrain < 0) {
+			terrain = 0;
+		}
 	}
 	
 	public void addTerrain(int amount) {
@@ -420,11 +431,17 @@ public class Resource implements Entity {
 
 	public void setWater(int water) {
 		this.water = water;
+		if(water < 0) {
+			water = 0;
+		}
 		env.activate(this);
 	}
 	
 	public void addWater(int amount) {
 		this.water += amount;
+		if(water < 0) {
+			water = 0;
+		}
 		env.activate(this);
 	}
 	

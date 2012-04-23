@@ -59,43 +59,55 @@ public class ErosionEffect extends Effect {
 		// erosion
 		if(affectedResource.getWater() > 0) {
 
-//			// local, direct erosion
-//			if(Gaia.rand.nextDouble() > 0.5 && speed > 0) {
-//				affectedResource.addTerrain(-Gaia.rand.nextInt(1));
-//			}
-			
 			if(speed < 2) {
 				
 				// sedimentation
 				if(Gaia.rand.nextDouble() > 0.9) {
 					
-					affectedResource.addTerrain(1);
+					affectedResource.addTerrain(Gaia.rand.nextInt(2));
 				}
 				
 			} else {
-				
-				// erosion
-				if(Gaia.rand.nextDouble() > 0.5) {
-					affectedResource.addTerrain(-1);
-					
-					if(!leftNeighbour.hasResource("sink") && !leftNeighbour.hasResource("plants") && !leftNeighbour.higher(affectedResource, 2)) {
-						
-						if(Gaia.rand.nextDouble() > 0.5) {
-							leftNeighbour.addTerrain(1);
-						}
-					}
-					if(!rightNeighbour.hasResource("sink") && !rightNeighbour.hasResource("plants") && !rightNeighbour.higher(affectedResource, 2)) {
-						
-						if(Gaia.rand.nextDouble() > 0.5) {
-							rightNeighbour.addTerrain(1);
-						}
-					}
-				}
-			
-				if(!directionNeighbour.hasResource("sink") && !directionNeighbour.hasResource("plants") && directionNeighbour.getTerrain() > affectedResource.getTerrain()) {
 
+				int dhLeft  = leftNeighbour.getTerrain() - affectedResource.getTerrain();
+				int dhRight = rightNeighbour.getTerrain() - affectedResource.getTerrain();
+				int dhDir   = directionNeighbour.getTerrain() - affectedResource.getTerrain();
+				
+				int allowedHeightDifference = 16;
+				int allowedNeighbourSedimentation = 4;
+				int max = 0;
+				
+				max = Math.max(max, dhLeft);
+				max = Math.max(max, dhRight);
+				max = Math.max(max, dhDir);
+				
+				// cap max 
+				if(max < allowedHeightDifference) {
+
+					// erosion
 					if(Gaia.rand.nextDouble() > 0.5) {
-						directionNeighbour.addTerrain(-1);
+
+						affectedResource.addTerrain(-Gaia.rand.nextInt(4));
+
+						if(!leftNeighbour.hasResource("sink") && !leftNeighbour.hasResource("plants") && !leftNeighbour.higher(affectedResource, allowedNeighbourSedimentation)) {
+
+							if(Gaia.rand.nextDouble() > 0.5) {
+								leftNeighbour.addTerrain(1);
+							}
+						}
+						if(!rightNeighbour.hasResource("sink") && !rightNeighbour.hasResource("plants") && !rightNeighbour.higher(affectedResource, allowedNeighbourSedimentation)) {
+
+							if(Gaia.rand.nextDouble() > 0.5) {
+								rightNeighbour.addTerrain(1);
+							}
+						}
+					}
+
+					if(!directionNeighbour.hasResource("sink") && !directionNeighbour.hasResource("plants") && directionNeighbour.getTerrain() > affectedResource.getTerrain()) {
+
+						if(Gaia.rand.nextDouble() > 0.5) {
+							directionNeighbour.addTerrain(-1);
+						}
 					}
 				}
 			}

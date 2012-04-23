@@ -41,8 +41,8 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	private int viewportWidth = 100;
 	private int viewportHeight = 100;
 	private boolean fire = false;
-	private int width = 513;
-	private int height = 513;
+	private int width = 257;
+	private int height = 257;
 	private int cellSize = 10;
 	private int level = -6;
 	private int keyMask = 0;
@@ -84,7 +84,7 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		
 		// sliders
 		waterTrailSlider = addSlider(controlsPanel, "Water trail length", 2, 20, 10);
-		waterSourceAmountSlider = addSlider(controlsPanel, "Water source strength", 0, 5, 2);
+		waterSourceAmountSlider = addSlider(controlsPanel, "Water source strength", 0, 50, 1);
 		plantsSlider = addSlider(controlsPanel, "Plant growth", 0, 6, 1);
 		
 		getContentPane().setLayout(new BorderLayout());
