@@ -1,6 +1,6 @@
 package com.morgner.gaia;
 
-import java.awt.Color;
+import java.awt.Graphics;
 import java.awt.Point;
 import java.util.List;
 
@@ -10,7 +10,7 @@ import java.util.List;
  */
 public interface Entity {
 	
-	public Color getCellColor();
+	public void drawCell(Graphics g, int x, int y, int w, int h);
 	public List<Effect> update(long dt);
 	public int getX();
 	public int getY();

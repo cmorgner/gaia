@@ -35,12 +35,12 @@ public class RootEffect extends Effect {
 		
 		if(affectedResource.getTerrain() < affectedResource.getEnvironment().getSeaLevel()) {
 			
-			if(!affectedResource.hasResource("sink")) {
+			if(!affectedResource.isSink()) {
 				affectedResource.setTerrain(affectedResource.getEnvironment().getSeaLevel());
 			}
 		}
 		
-		if(!affectedResource.hasResource("sink") && Gaia.rand.nextDouble() > 0.9) {
+		if(!affectedResource.isSink() && Gaia.rand.nextDouble() > 0.9) {
 			affectedResource.addTerrain(Gaia.rand.nextInt(3) - 1);
 		}
 		

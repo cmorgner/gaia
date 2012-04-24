@@ -20,6 +20,8 @@ public class Canvas extends java.awt.Canvas {
 		BufferStrategy bs = this.getBufferStrategy();
 		Graphics g = bs.getDrawGraphics();
 		
+		g.clearRect(0, 0, getWidth(), getHeight());
+		
 		// draw environment
 		env.draw(g);
 		

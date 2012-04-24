@@ -41,8 +41,8 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	private int viewportWidth = 100;
 	private int viewportHeight = 100;
 	private boolean fire = false;
-	private int width = 257;
-	private int height = 257;
+	private int width = 513;
+	private int height = 513;
 	private int cellSize = 10;
 	private int level = -6;
 	private int keyMask = 0;
@@ -99,6 +99,8 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		canvas.addMouseWheelListener(this);
 		
 		canvas.createBufferStrategy(2);
+		
+		running = true;
 
 		// start initialization
 		timer.schedule(new Runnable() {
@@ -121,8 +123,6 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 				paint();
 			}
 		}, gt, TimeUnit.MILLISECONDS);
-		
-		running = true;
 	}
 
 	private JSlider addSlider(JPanel controlsPanel, String label, int min, int max, int value) {
@@ -182,9 +182,14 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	
 	public void paint() {
 		
-		canvas.paint();
+		try {
+			canvas.paint();
+			
+		} catch(Throwable t) {
+		}
 
 		if(running) {
+			
 			timer.schedule(new Runnable() {
 				@Override public void run() {
 					paint();

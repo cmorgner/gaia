@@ -31,7 +31,7 @@ public class Environment {
 	
 	private int terrainGenerationIterations = 25;
 	private int terrainGenerationConstant = 50;
-	private int terrainSmoothingIterations = 4;
+	private int terrainSmoothingIterations = 40;
 	
 	private int waterSourceAmount = 2;
 	private int waterSources = 20;
@@ -43,8 +43,8 @@ public class Environment {
 	private int seaWaterHeight = 10;
 	private int plantsFactor = 1;
 	
-	private double treeLineFactor = 0.75;
-	private double seaLevelFactor = 0.1;
+	private double treeLineFactor = 0.7;
+	private double seaLevelFactor = 0.2;
 	
 	public Environment(int r, int width, int height, int viewportWidth, int viewportHeight) {
 		
@@ -139,8 +139,6 @@ public class Environment {
 		maxHeight -= minHeight;
 		minHeight = 0;
 		
-		System.out.println("minHeight: " + minHeight + ", maxHeight: " + maxHeight);
-		
 		// set tree line (max height of plant growth
 		treeLine = (int)Math.rint((double)maxHeight * treeLineFactor);
 		seaLevel = (int)Math.rint((double)maxHeight * seaLevelFactor);
@@ -157,8 +155,8 @@ public class Environment {
 				
 				if(terrain <= seaLevel) {
 					
-					resources[i][j].setResource("sink", 1);
 					resources[i][j].setWater(seaLevel - terrain);
+					resources[i][j].setSink(true);
 				}
 			}
 		}
@@ -245,9 +243,7 @@ public class Environment {
 				int y = j + viewportY;
 
 				if(x >= 0 && x < width && y >= 0 && y < height) {
-					
-					g.setColor(resources[x][y].getCellColor());
-					g.fillRect(i*cellSize, j*cellSize, cellSize, cellSize);
+					resources[x][y].drawCell(g, i*cellSize, j*cellSize, cellSize, cellSize);
 				}
 			}
 		}
@@ -260,8 +256,8 @@ public class Environment {
 		
 		if(cellSize < 4) {
 			cellSize = 4;
-		} else if(cellSize > 30) {
-			cellSize = 30;
+		} else if(cellSize > 100) {
+			cellSize = 100;
 		}
 		
 		// scale viewport size accordingly
@@ -288,8 +284,8 @@ public class Environment {
 	
 	public void pan(int dx, int dy) {
 		
-		viewportX += dx * (30.0 / (double)cellSize);
-		viewportY += dy * (30.0 / (double)cellSize);
+		viewportX += dx * (100.0 / (double)cellSize);
+		viewportY += dy * (100.0 / (double)cellSize);
 		
 		if(viewportX < 0) viewportX = 0;
 		if(viewportY < 0) viewportY = 0;

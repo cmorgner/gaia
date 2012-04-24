@@ -4,6 +4,7 @@ import com.morgner.gaia.effect.ErosionEffect;
 import com.morgner.gaia.effect.FireEffect;
 import com.morgner.gaia.effect.PlantsEffect;
 import java.awt.Color;
+import java.awt.Graphics;
 import java.awt.Point;
 import java.util.*;
 
@@ -15,6 +16,7 @@ public class Resource implements Entity {
 
 	private final Map<String, Integer> resources = new HashMap<String, Integer>();
 	private Environment env = null;
+	private boolean isSink = false;
 	private int terrain = 0;
 	private int water = 0;
 	private int type = 0;
@@ -123,8 +125,30 @@ public class Resource implements Entity {
 		return getResource(name) > 0;
 	}
 	
+	private void setColor(Graphics gr, int r, int g, int b) {
+		setColor(gr, r, g, b, 255);
+	}
+	
+	private void setColor(Graphics gr, int r, int g, int b, int a) {
+		
+		if(r <   0) r =   0;
+		if(r > 255) r = 255;
+		if(g <   0) g =   0;
+		if(g > 255) g = 255;
+		if(b <   0) b =   0;
+		if(b > 255) b = 255;
+		if(a <   0) a =   0;
+		if(a > 255) a = 255;
+		
+//		if(env.getCellSize() > 30) {
+			gr.setColor(new Color(r, g, b, a));
+//		} else {
+//			gr.setColor(new Color(r, g, b));
+//		}
+	}
+	
 	@Override
-	public Color getCellColor() {
+	public void drawCell(Graphics gr, int x, int y, int w, int h) {
 		
 		int intHeight = getTerrain();
 		double height = intHeight;
@@ -135,93 +159,121 @@ public class Resource implements Entity {
 		int ashes = getResource("ashes");
 		int fire = getResource("fire");
 
-		int r = 0;
-		int g = 0;
-		int b = 0;
-		
 		if(getType() == 1) {
 			
-			return new Color(0, 0, 255);
+			setColor(gr, 255, 0, 255);
+			gr.fillRect(x, y, w, h);
+		} 
+		
+		if(getType() == 2) {
 
-		} else if(getType() == 2) {
+			setColor(gr, 255, 255, 255);
+			gr.fillRect(x, y, w, h);
 			
-			return new Color(255, 255, 255);
+		}
+		
+		double f = env.getColorFactor();
+		int terrainR = 0;
+		int terrainG = 0;
+		int terrainB = 0;
+
+		if(height > env.getTreeLine() || _water > 0) {
+
+			terrainR = (int)Math.rint(height * f) - 32;
+			terrainG = (int)Math.rint(height * f) - 32;
+			terrainB = (int)Math.rint(height * f) - 32;
+
+		} else {
+
+			terrainR = (int)Math.rint(height * f) + 16;
+			terrainG = (int)Math.rint(height * f * 0.63) + 16;
+			terrainB = (int)Math.rint(height * f * 0.36) + 16;
+		}
+
+		setColor(gr, terrainR, terrainG, terrainB);
+		gr.fillRect(x, y, w, h);
+
+		if(fire > 0) {
 			
-//		} else if(getResource("sink") > 0) {
-//	
-//			return new Color(255, 0, 0);
-			
-		} else if(fire > 0) {
+			int r = 0;
+			int g = 0;
+			int b = 0;
 			
 			switch(Gaia.rand.nextInt(3)) {
 				case 0:
-					return new Color(255, 128, 0);
+					r = 255;
+					g = 128;
+					b = 0;
+					break;
+
 				case 1:
-					return new Color(255, 0, 0);
+					r = 255;
+					break;
+
 				case 2:
-					return new Color(255, 224, 0);
+					
+					r = 255;
+					b = 224;
+					break;
 			}
+
+			setColor(gr, r, g, b);
+			gr.fillRect(x, y, w, h);
+		} 
+		
+		if(ashes > 0) {
 			
-		} else if(ashes > 0) {
+			int r = 0;
+			int g = 0;
+			int b = 0;
 			
 			switch(Gaia.rand.nextInt(3)) {
 				case 0:
-					return new Color(128, 128, 128);
+					r = 128;
+					g = 128;
+					b = 128;
+					break;
+
 				case 1:
-					return new Color(132, 132, 132);
+					r = 132;
+					g = 132;
+					b = 132;
+					break;
+
 				case 2:
-					return new Color(136, 136, 136);
+					r = 136;
+					g = 136;
+					b = 136;
+					break;
 			}
 
-		} else if(intHeight < env.getSeaLevel()) {
+			setColor(gr, r, g, b);
+			gr.fillRect(x, y, w, h);
 
-			int d = env.getSeaLevel() - intHeight;
-			if(d > 8) {
-				
-				b = 240 - (d / 4);
-				
-			} else {
-				
-				b = 240 - d;
-			}
-			
-		} else if(_water > 0) {
+		}
 
-			b = 255 - _water;
+		if(_water > 0) {
+
+			int b = 255 - (water);
 			if(b <  64) b =  64;
 			if(b > 255) b = 255;
 			
-		} else if(plants > 0) {
-
-			g = (plants) + 160;
+			setColor(gr, 0, 0, b, _water + 64);
+			gr.fillRect(x, y, w, h);
 			
-		} else {
-			
-			double f = env.getColorFactor();
-			
-			if(height > env.getTreeLine()) {
-				
-				r = (int)Math.rint(height * f) - 32;
-				g = (int)Math.rint(height * f) - 32;
-				b = (int)Math.rint(height * f) - 32;
-
-			} else {
-				
-				r = (int)Math.rint(height * f) + 16;
-				g = (int)Math.rint(height * f * 0.63) + 16;
-				b = (int)Math.rint(height * f * 0.36) + 16;
-			}
 		}
 		
-		if(r > 255) r = 255;
-		if(g > 255) g = 255;
-		if(b > 255) b = 255;
+		if(plants > 0) {
 
-		if(r <   0) r = 0;
-		if(g <   0) g = 0;
-		if(b <   0) b = 0;
-
-		return new Color(r, g, b);
+			int g = (plants) + 160;
+			if(g <  64) g =  64;
+			if(g > 255) g = 255;
+			
+			setColor(gr, 0, g, 0, 128);
+			gr.fillRect(x, y, w, h);
+			
+			
+		}
 	}
 	
 	@Override
@@ -289,10 +341,6 @@ public class Resource implements Entity {
 						int combinedLocalHeight = localTerrain + localWater;
 						int combinedNeighbourHeight = neighbourTerrain + neighbourWater;
 
-						int combinedHeightDifference = combinedLocalHeight - combinedNeighbourHeight;
-						e = new ErosionEffect(Resource.this, n, combinedHeightDifference);
-
-						// flow speed dependent erosion
 						if(localTerrain == neighbourTerrain) {
 
 							// level terrain, equalize water height
@@ -317,6 +365,8 @@ public class Resource implements Entity {
 
 										affectedResource.addWater(v+d);
 										addWater(-(v+d));
+
+										e = new ErosionEffect(affectedResource, v+d);
 									}
 									
 								} else if(localWater > neighbourWater) {
@@ -329,6 +379,8 @@ public class Resource implements Entity {
 
 										affectedResource.addWater(v);
 										addWater(-v);
+
+										e = new ErosionEffect(affectedResource, v);
 										
 									} else if(d > 4) {
 
@@ -337,37 +389,59 @@ public class Resource implements Entity {
 										affectedResource.addWater(v);
 										addWater(-v);
 
+										e = new ErosionEffect(affectedResource, v);
+
 									} else {
 
 										affectedResource.addWater(1);
 										addWater(-1);
+
+										e = new ErosionEffect(affectedResource, 1);
 									}
 								}
+								
 							}
 						}
 
+						localTerrain = getTerrain();
+						neighbourTerrain = affectedResource.getTerrain();
+
+						localWater = getWater();
+						neighbourWater = affectedResource.getWater();
+
+						combinedLocalHeight = localTerrain + localWater;
+						combinedNeighbourHeight = neighbourTerrain + neighbourWater;
+
+						if(combinedLocalHeight == combinedNeighbourHeight) {
+
+							// sedimentation if water level is the same
+							if(localTerrain > neighbourTerrain && localWater > 16) {
+
+								if(Gaia.rand.nextDouble() > 0.9) {
+									affectedResource.addTerrain(localWater / 16);
+								}
+
+							} else if(localTerrain < neighbourTerrain && neighbourWater > 16) {
+
+								if(Gaia.rand.nextDouble() > 0.9) {
+									addTerrain(neighbourWater / 16);
+								}
+
+							}
+						}
+						
 						return e;
 					}
 				});
 			}
 
 			// evaporization
-//			if(Gaia.rand.nextDouble() > (Math.pow(0.99, 1.0 / (double)getWater()))) {
-//				addWater(-1);
-//			}
+			if(Gaia.rand.nextDouble() > (Math.pow(0.99, 1.0 / (double)getWater()))) {
+				addWater(-1);
+			}
 			
 		} else {
 			addResource("_water", -1);			
-		}
-		
-		// sea level never changes
-		if(hasResource("sink")) {
-			effects.add(new Effect(this) {
-				@Override public Effect effect() {
-					affectedResource.setWater(env.getSeaLevel() - affectedResource.getTerrain());
-					return null;
-				}
-			});
 		}
 		
 		if(effects.isEmpty()) {
@@ -422,7 +496,9 @@ public class Resource implements Entity {
 	}
 	
 	public void addTerrain(int amount) {
-		this.terrain += amount;
+		if(!isSink()) {
+			this.terrain += amount;
+		}
 	}
 
 	public int getWater() {
@@ -430,19 +506,27 @@ public class Resource implements Entity {
 	}
 
 	public void setWater(int water) {
-		this.water = water;
-		if(water < 0) {
-			water = 0;
+		
+		if(!isSink()) {
+
+			this.water = water;
+			if(water < 0) {
+				water = 0;
+			}
+			env.activate(this);
 		}
-		env.activate(this);
 	}
 	
 	public void addWater(int amount) {
-		this.water += amount;
-		if(water < 0) {
-			water = 0;
+		
+		if(!isSink()) {
+			
+			this.water += amount;
+			if(water < 0) {
+				water = 0;
+			}
+			env.activate(this);
 		}
-		env.activate(this);
 	}
 	
 	public boolean hasWater() {
@@ -451,5 +535,13 @@ public class Resource implements Entity {
 	
 	public boolean higher(Resource res, int amount) {
 		return getTerrain() - res.getTerrain() > amount;
+	}
+
+	public boolean isSink() {
+		return isSink;
+	}
+
+	public void setSink(boolean isSink) {
+		this.isSink = isSink;
 	}
 }
