@@ -141,9 +141,9 @@ public class Resource implements Entity {
 		if(a > 255) a = 255;
 		
 //		if(env.getCellSize() > 30) {
-			gr.setColor(new Color(r, g, b, a));
+//			gr.setColor(new Color(r, g, b, a));
 //		} else {
-//			gr.setColor(new Color(r, g, b));
+			gr.setColor(new Color(r, g, b));
 //		}
 	}
 	
@@ -172,25 +172,7 @@ public class Resource implements Entity {
 			
 		}
 		
-		double f = env.getColorFactor();
-		int terrainR = 0;
-		int terrainG = 0;
-		int terrainB = 0;
-
-		if(height > env.getTreeLine() || _water > 0) {
-
-			terrainR = (int)Math.rint(height * f) - 32;
-			terrainG = (int)Math.rint(height * f) - 32;
-			terrainB = (int)Math.rint(height * f) - 32;
-
-		} else {
-
-			terrainR = (int)Math.rint(height * f) + 16;
-			terrainG = (int)Math.rint(height * f * 0.63) + 16;
-			terrainB = (int)Math.rint(height * f * 0.36) + 16;
-		}
-
-		setColor(gr, terrainR, terrainG, terrainB);
+		gr.setColor(getColorForTerrain());
 		gr.fillRect(x, y, w, h);
 
 		if(fire > 0) {
@@ -271,8 +253,6 @@ public class Resource implements Entity {
 			
 			setColor(gr, 0, g, 0, 128);
 			gr.fillRect(x, y, w, h);
-			
-			
 		}
 	}
 	
@@ -314,6 +294,7 @@ public class Resource implements Entity {
 		if(hasWater()) {
 			
 			setResource("_water", env.getWaterTrail());
+			setResource("moisture", 255);
 
 			List<Resource> sortedNeighbours = new ArrayList<Resource>(8);
 			sortedNeighbours.addAll(getNeighbours(false, false));
@@ -441,8 +422,26 @@ public class Resource implements Entity {
 			}
 			
 		} else {
+			
 			addResource("_water", -1);			
 		}
+		
+		effects.add(new Effect(this) {
+			@Override public Effect effect() {
+				
+				int moisture = affectedResource.getResource("moisture");
+				if(moisture > 0) {
+
+					for(Resource n : getNeighbours()) {
+
+						if(Gaia.rand.nextDouble() > 0.99) {
+							n.setResource("moisture", moisture - 1);
+						}
+					}
+				}
+				return null;
+			}
+		});
 		
 		if(effects.isEmpty()) {
 			env.deactivate(this);
@@ -543,5 +542,54 @@ public class Resource implements Entity {
 
 	public void setSink(boolean isSink) {
 		this.isSink = isSink;
+	}
+	
+	private Color getColorForTerrain() {
+		
+		double f = env.getColorFactor() * 0.5;
+		double height = getTerrain();
+
+		int h = (int)Math.rint((height / (double)env.getMaxHeight()) * 4.0) - 1;
+		int m = (int)Math.rint(((double)getResource("moisture") / (double)255.0) * 6.0) - 1;
+
+		Color ret = getColorForZone(h, m);
+
+		int r = (int)Math.rint(height * f) - 128;
+		int g = (int)Math.rint(height * f) - 128;
+		int b = (int)Math.rint(height * f) - 128;
+
+		int r2 = ret.getRed() + r;
+		int g2 = ret.getGreen() + g;
+		int b2 = ret.getBlue() + b;
+		
+		if(r2 <   0) r2 = 0;
+		if(g2 <   0) g2 = 0;
+		if(b2 <   0) b2 = 0;
+		if(r2 > 255) r2 = 255;
+		if(g2 > 255) g2 = 255;
+		if(b2 > 255) b2 = 255;
+		
+		ret = new Color(r2, g2, b2);
+		
+		return ret;
+	}
+	
+	private static final Color[][] colorZones = new Color[][] {
+	
+		/* 0 */ { new Color(0xe9ddc7), new Color(0xc4d4aa), new Color(0xa9cca4), new Color(0xa9cca4), new Color(0x9cbba9), new Color(0x9cbba9) },
+		/* 1 */ { new Color(0xe4e8ca), new Color(0xc4d4aa), new Color(0xc4d4aa), new Color(0xb4c9a9), new Color(0xb4c9a9), new Color(0xa4c4a8) },
+		/* 2 */ { new Color(0xe4e8ca), new Color(0xe4e8ca), new Color(0xc4ccbb), new Color(0xc4ccbb), new Color(0xccd4bb), new Color(0xccd4bb) },
+		/* 3 */ { new Color(0x999999), new Color(0xbbbbbb), new Color(0xddddbb), new Color(0xdddddd), new Color(0xeeeeee), Color.WHITE  }
+		
+	};
+	
+	private Color getColorForZone(int height, int moisture) {
+		
+		if(height < 0) height = 0;
+		if(height > 3) height = 3;
+		if(moisture < 0) moisture = 0;
+		if(moisture > 5) moisture = 5;
+
+		return colorZones[height][moisture];
 	}
 }

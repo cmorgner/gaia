@@ -493,7 +493,7 @@ public class Environment {
 	
 	public double getColorFactor() {
 		
-		return 1.0 / ((double)maxHeight / 255.0);
+		return 255.0 / (double)maxHeight;
 	}
 	
 	public int getSeaLevel() {
