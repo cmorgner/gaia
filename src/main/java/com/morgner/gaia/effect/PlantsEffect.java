@@ -21,15 +21,19 @@ public class PlantsEffect extends Effect {
 	@Override
 	public Effect effect() {
 		
+		if(!affectedResource.hasResource("moisture")) {
+			return null;
+		}
+		
 		int neighboursWithPlants = affectedResource.getResource("humus") / 8;
 		int neighboursWithWater = 0;
 
 		for(Resource n : affectedResource.getNeighbours()) {
-			
+
 			if(n.hasWater()) {
 				neighboursWithWater++;
 			}
-			
+
 			if(n.hasResource("plants")) { // && n.getTerrain() >= affectedResource.getTerrain() + 5) {
 				neighboursWithPlants++;
 			}
@@ -65,7 +69,7 @@ public class PlantsEffect extends Effect {
 			if(!affectedResource.hasResource("fire")) {
 
 				if(Gaia.rand.nextDouble() > Math.pow(0.99, affectedResource.getEnvironment().getPlantsFactor())) {
-					
+
 					if(existingPlants == 0) {
 
 						// plant will be added, set randomized maximum age
@@ -73,6 +77,7 @@ public class PlantsEffect extends Effect {
 					}
 
 					if(existingPlants < 25) {
+						affectedResource.addResource("moisture", -8);
 						affectedResource.addResource("plants", 1);
 					}
 				}

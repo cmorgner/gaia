@@ -7,6 +7,7 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Point;
 import java.util.*;
+import javax.vecmath.Vector3d;
 
 /**
  *
@@ -140,19 +141,13 @@ public class Resource implements Entity {
 		if(a <   0) a =   0;
 		if(a > 255) a = 255;
 		
-//		if(env.getCellSize() > 30) {
-//			gr.setColor(new Color(r, g, b, a));
-//		} else {
-			gr.setColor(new Color(r, g, b));
-//		}
+		gr.setColor(new Color(r, g, b, a));
+//		gr.setColor(new Color(r, g, b));
 	}
 	
 	@Override
 	public void drawCell(Graphics gr, int x, int y, int w, int h) {
 		
-		int intHeight = getTerrain();
-		double height = intHeight;
-		    
 		int plants = getResource("plants");
 		int _water = water + getResource("_water");
 
@@ -173,6 +168,14 @@ public class Resource implements Entity {
 		}
 		
 		gr.setColor(getColorForTerrain());
+		gr.fillRect(x, y, w, h);
+
+		// only use when alpha blending is enabled
+		gr.setColor(getColorForHeight());
+		gr.fillRect(x, y, w, h);
+
+		// only use when alpha blending is enabled
+		gr.setColor(getColorForInclination());
 		gr.fillRect(x, y, w, h);
 
 		if(fire > 0) {
@@ -199,7 +202,7 @@ public class Resource implements Entity {
 					break;
 			}
 
-			setColor(gr, r, g, b);
+			setColor(gr, r, g, b, 255);
 			gr.fillRect(x, y, w, h);
 		} 
 		
@@ -229,7 +232,7 @@ public class Resource implements Entity {
 					break;
 			}
 
-			setColor(gr, r, g, b);
+			setColor(gr, r, g, b, 64);
 			gr.fillRect(x, y, w, h);
 
 		}
@@ -251,7 +254,7 @@ public class Resource implements Entity {
 			if(g <  64) g =  64;
 			if(g > 255) g = 255;
 			
-			setColor(gr, 0, g, 0, 128);
+			setColor(gr, 0, g, 0, 64);
 			gr.fillRect(x, y, w, h);
 		}
 	}
@@ -275,7 +278,7 @@ public class Resource implements Entity {
 
 		// add plants effect
 		int humus = getResource("humus");
-		if(getTerrain() < env.getTreeLine() && !hasWater() && humus > 0) {
+		if(getTerrain() < env.getTreeLine() && !hasWater() && humus > 0 && hasResource("moisture")) {
 			effects.add(new PlantsEffect(this));
 		} else {
 			setResource("plants", 0);
@@ -430,15 +433,14 @@ public class Resource implements Entity {
 			@Override public Effect effect() {
 				
 				int moisture = affectedResource.getResource("moisture");
-				if(moisture > 0) {
-
-					for(Resource n : getNeighbours()) {
-
-						if(Gaia.rand.nextDouble() > 0.99) {
-							n.setResource("moisture", moisture - 1);
-						}
-					}
+				int m = 0;
+				
+				for(Resource n : affectedResource.getNeighbours()) {
+					m += n.getResource("moisture") - moisture;
 				}
+				
+				affectedResource.addResource("moisture", m/8);
+
 				return null;
 			}
 		});
@@ -546,41 +548,46 @@ public class Resource implements Entity {
 	
 	private Color getColorForTerrain() {
 		
-		double f = env.getColorFactor() * 0.5;
 		double height = getTerrain();
 
 		int h = (int)Math.rint((height / (double)env.getMaxHeight()) * 4.0) - 1;
 		int m = (int)Math.rint(((double)getResource("moisture") / (double)255.0) * 6.0) - 1;
 
-		Color ret = getColorForZone(h, m);
+		return getColorForZone(h, m);
+	}
+	
+	private Color getColorForHeight() {
+		
+		int height = getTerrain();
+		int x = (int)Math.rint(height * env.getColorFactor());
+		if(x <   0) x =   0;
+		if(x > 255) x = 255;
+		
+		int v = env.getShadowBrightness();
 
-		int r = (int)Math.rint(height * f) - 128;
-		int g = (int)Math.rint(height * f) - 128;
-		int b = (int)Math.rint(height * f) - 128;
+		return new Color(v, v, v, 255-x);
+	}
+	
+	private Color getColorForInclination() {
+		
+		int nx = getResources("normalX");
+		int ny = getResources("normalY");
 
-		int r2 = ret.getRed() + r;
-		int g2 = ret.getGreen() + g;
-		int b2 = ret.getBlue() + b;
+		int a = (int)Math.rint((double)(nx+ny)*env.getInclinationBrightnessFactor());
 		
-		if(r2 <   0) r2 = 0;
-		if(g2 <   0) g2 = 0;
-		if(b2 <   0) b2 = 0;
-		if(r2 > 255) r2 = 255;
-		if(g2 > 255) g2 = 255;
-		if(b2 > 255) b2 = 255;
-		
-		ret = new Color(r2, g2, b2);
-		
-		return ret;
+		if(a <   0) a =   0;
+		if(a > 255) a = 255;
+
+		return new Color(0, 0, 0, a);
 	}
 	
 	private static final Color[][] colorZones = new Color[][] {
 	
-		/* 0 */ { new Color(0xe9ddc7), new Color(0xc4d4aa), new Color(0xa9cca4), new Color(0xa9cca4), new Color(0x9cbba9), new Color(0x9cbba9) },
-		/* 1 */ { new Color(0xe4e8ca), new Color(0xc4d4aa), new Color(0xc4d4aa), new Color(0xb4c9a9), new Color(0xb4c9a9), new Color(0xa4c4a8) },
-		/* 2 */ { new Color(0xe4e8ca), new Color(0xe4e8ca), new Color(0xc4ccbb), new Color(0xc4ccbb), new Color(0xccd4bb), new Color(0xccd4bb) },
-		/* 3 */ { new Color(0x999999), new Color(0xbbbbbb), new Color(0xddddbb), new Color(0xdddddd), new Color(0xeeeeee), Color.WHITE  }
-		
+		{ new Color(0xe9ddc7), new Color(0xc4d4aa), new Color(0xa9cca4), new Color(0xa9cca4), new Color(0x9cbba9), new Color(0x9cbba9) },
+		{ new Color(0xe4e8ca), new Color(0xc4d4aa), new Color(0xc4d4aa), new Color(0xb4c9a9), new Color(0xb4c9a9), new Color(0xa4c4a8) },
+		{ new Color(0xe4e8ca), new Color(0xe4e8ca), new Color(0xc4ccbb), new Color(0xc4ccbb), new Color(0xccd4bb), new Color(0xccd4bb) },
+		{ new Color(0xaaaaaa), new Color(0xbbbbbb), new Color(0xddddbb), new Color(0xdddddd), new Color(0xeeeeee), Color.WHITE  }
+
 	};
 	
 	private Color getColorForZone(int height, int moisture) {

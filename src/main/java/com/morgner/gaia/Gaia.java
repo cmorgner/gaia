@@ -31,6 +31,8 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	private JSlider waterSourceAmountSlider = null;
 	private JSlider waterTrailSlider = null;
 	private JSlider plantsSlider = null;
+	private JSlider shadowBrightnessSlider = null;
+	private JSlider inclinationBrightnessSlider = null;
 	
 	private ScheduledExecutorService timer = null;
 	private boolean running = false;
@@ -86,6 +88,8 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		waterTrailSlider = addSlider(controlsPanel, "Water trail length", 2, 20, 10);
 		waterSourceAmountSlider = addSlider(controlsPanel, "Water source strength", 0, 50, 1);
 		plantsSlider = addSlider(controlsPanel, "Plant growth", 0, 6, 1);
+		shadowBrightnessSlider = addSlider(controlsPanel, "Shadow brightness", 0, 255, 128);
+		inclinationBrightnessSlider = addSlider(controlsPanel, "Slope shadow brightness", 0, 50, 10);
 		
 		getContentPane().setLayout(new BorderLayout());
 		getContentPane().add(canvas, BorderLayout.CENTER);
@@ -335,9 +339,9 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		water = 0;
 		
 		if(e.getSource().equals(lowerButton)) {
-			level = -50;
+			level = -6;
 		} else if(e.getSource().equals(elevateButton)) {
-			level = 50;
+			level = 6;
 		} else if(e.getSource().equals(addWaterButton)) {
 			water = 2;
 		} else if(e.getSource().equals(removeWaterButton)) {
@@ -361,6 +365,14 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		} else if(e.getSource().equals(plantsSlider)) {
 			
 			environment.setPlantsFactor(plantsSlider.getValue());
+			
+		} else if(e.getSource().equals(shadowBrightnessSlider)) {
+			
+			environment.setShadowBrightness(shadowBrightnessSlider.getValue());
+			
+		} else if(e.getSource().equals(inclinationBrightnessSlider)) {
+			
+			environment.setInclinationBrightnessFactor((int)Math.rint((double)inclinationBrightnessSlider.getValue() / 10.0));
 		}
 	}
 	
