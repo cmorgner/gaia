@@ -1,9 +1,6 @@
 package com.morgner.gaia;
 
-import java.awt.BorderLayout;
-import java.awt.Button;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
+import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -43,8 +40,8 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	private int viewportWidth = 100;
 	private int viewportHeight = 100;
 	private boolean fire = false;
-	private int width = 257;
-	private int height = 257;
+	private int width = 129;
+	private int height = 129;
 	private int cellSize = 10;
 	private int level = -6;
 	private int keyMask = 0;
@@ -59,9 +56,11 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	
 	public Gaia() {
 		
-		super("Gaia v0.1");
+		super("Gaia v0.1", GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration());
 		
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setUndecorated(true);
+		
 		setMinimumSize(new Dimension(200 + viewportWidth * cellSize, viewportHeight * cellSize));
 		setMaximumSize(new Dimension(200 + viewportWidth * cellSize, viewportHeight * cellSize));
 		
@@ -89,13 +88,41 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		waterSourceAmountSlider = addSlider(controlsPanel, "Water source strength", 0, 50, 1);
 		plantsSlider = addSlider(controlsPanel, "Plant growth", 0, 6, 1);
 		shadowBrightnessSlider = addSlider(controlsPanel, "Shadow brightness", 0, 255, 128);
-		inclinationBrightnessSlider = addSlider(controlsPanel, "Slope shadow brightness", 0, 50, 10);
+		inclinationBrightnessSlider = addSlider(controlsPanel, "Slope shadow brightness", 0, 800, 260);
 		
 		getContentPane().setLayout(new BorderLayout());
 		getContentPane().add(canvas, BorderLayout.CENTER);
 		getContentPane().add(controlsPanel, BorderLayout.EAST);
 		
 		pack();
+
+		/*
+		GraphicsEnvironment env = GraphicsEnvironment.getLocalGraphicsEnvironment();
+		GraphicsDevice dev      = env.getDefaultScreenDevice();
+		
+		try {
+			
+			DisplayMode mode        = null;
+			
+			for(DisplayMode m : dev.getDisplayModes()) {
+				
+				System.out.println(m.getWidth() + "x" + m.getHeight() + "@" + m.getBitDepth() + " " + m.getRefreshRate());
+				
+				if(m.getWidth() == 800 && m.getHeight() == 600 && m.getRefreshRate() == 75) {
+					mode = m;
+				}
+			}
+			
+			dev.setFullScreenWindow(this);
+			dev.setDisplayMode(mode);
+			
+		} catch(Throwable t) {
+			
+			t.printStackTrace();
+			dev.setFullScreenWindow(null);
+		}
+		*/
+		
 		
 		canvas.addKeyListener(this);
 		canvas.addMouseListener(this);
@@ -372,7 +399,8 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 			
 		} else if(e.getSource().equals(inclinationBrightnessSlider)) {
 			
-			environment.setInclinationBrightnessFactor((int)Math.rint((double)inclinationBrightnessSlider.getValue() / 10.0));
+			double f = (double)inclinationBrightnessSlider.getValue() / 100.0;
+			environment.setInclinationBrightnessFactor(f);
 		}
 	}
 	

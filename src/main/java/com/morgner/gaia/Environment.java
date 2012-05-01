@@ -1,11 +1,10 @@
 package com.morgner.gaia;
 
+import com.morgner.gaia.entity.Animal;
 import java.awt.Graphics;
 import java.awt.Point;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import javax.vecmath.Vector2d;
-import javax.vecmath.Vector3d;
 
 /**
  *
@@ -28,22 +27,28 @@ public class Environment {
 	private int viewportY0 = 0;
 	private int viewportWidth = 0;
 	private int viewportHeight = 0;
-	private int terrainGenerationIterations = 25;
-	private int terrainGenerationConstant = 50;
+	
+	private int terrainGenerationIterations = 50;
+	private int terrainGenerationConstant =	100;
 	private int terrainSmoothingIterations = 50;
+	private double terrainSmoothingConstant = 0.5;
+	
 	private int waterSourceAmount = 2;
 	private int waterSources = 20;
-	private int waterTrail = 20;
-	private int minHeight = 0;
-	private int maxHeight = 0;
-	private int treeLine = 0;
+	private int waterTrail = 0;
 	private int seaLevel = 0;
 	private int seaWaterHeight = 10;
+	private double seaLevelFactor = 0.3;
+	
+	private int minHeight = 0;
+	private int maxHeight = 1000;
+	private int treeLine = 0;
+
 	private int plantsFactor = 1;
-	private int shadowBrightness = 32;
-	private double treeLineFactor = 0.7;
-	private double seaLevelFactor = 0.2;
-	private double inclinationBrightnessFactor = 1.0;
+	private int shadowBrightness = 128;
+	private double treeLineFactor = 0.9;
+	
+	private double inclinationBrightnessFactor = 2.6;
 
 	public Environment(int r, int width, int height, int viewportWidth, int viewportHeight) {
 
@@ -95,7 +100,7 @@ public class Environment {
 						sum += n1.getTerrain() - t;
 					}
 
-					final int val = (int) Math.rint(((double) sum / 4.0) * 0.1);
+					final int val = (int) Math.rint(((double) sum / 4.0) * terrainSmoothingConstant);
 
 					effects.add(new Effect(res) {
 
@@ -184,6 +189,11 @@ public class Environment {
 		}
 
 		calculateNormals();
+		
+		// add animal
+		for(int i=0; i<100; i++) {
+			entities.add(new Animal(this, Gaia.rand.nextInt(width), Gaia.rand.nextInt(height)));
+		}
 	}
 
 	public Resource getResource(int x, int y) {
@@ -199,8 +209,12 @@ public class Environment {
 		}
 
 		// collect effects from entities
-		for (Entity entity : entities) {
+		for (Iterator<Entity> it = entities.iterator(); it.hasNext();) {
+			Entity entity = it.next();
 			List<Effect> e = entity.update(dt);
+			if(!entity.isAlive()) {
+				it.remove();
+			}
 			effects.addAll(e);
 		}
 
@@ -262,6 +276,16 @@ public class Environment {
 					resources[x][y].drawCell(g, i * cellSize, j * cellSize, cellSize, cellSize);
 				}
 			}
+		}
+		
+		for(Entity entity : entities) {
+			
+			int x = (entity.getX() - viewportX) * cellSize;
+			int y = (entity.getY() - viewportY) * cellSize;
+
+			//if (x >= 0 && x < viewportWidth && y >= 0 && y < viewportHeight) {
+				entity.drawCell(g, x, y, cellSize, cellSize);
+			//}
 		}
 	}
 
@@ -594,8 +618,18 @@ public class Environment {
 		
 				Resource res = getResource(x, y);
 
-				int sx = getResource(x-1,   y).getTerrain() - getResource(x+1,   y).getTerrain();
-				int sy = getResource(  x, y-1).getTerrain() - getResource(  x, y+1).getTerrain();
+				Resource left   = getResource(x-1,   y);
+				Resource right  = getResource(x+1,   y);
+				Resource top    = getResource(  x, y-1);
+				Resource bottom = getResource(  x, y+1);
+
+				int tl =   left.getTerrain();
+				int tr =  right.getTerrain();
+				int tt =    top.getTerrain() + (top.getResource("plants") * 4);
+				int tb = bottom.getTerrain();
+	
+				int sx = tl - tr;
+				int sy = tt - tb;
 
 				res.setResource("normalX", -sx);
 				res.setResource("normalY",  sy);
@@ -609,6 +643,8 @@ public class Environment {
 
 	public void setInclinationBrightnessFactor(double inclinationBrightnessFactor) {
 		this.inclinationBrightnessFactor = inclinationBrightnessFactor;
+		
+		System.out.println(inclinationBrightnessFactor);
 	}
 
 	public int getShadowBrightness() {

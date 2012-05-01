@@ -1,8 +1,12 @@
 package com.morgner.gaia;
 
 import java.awt.Graphics2D;
+import java.awt.GraphicsEnvironment;
+import java.awt.Image;
 import java.awt.RenderingHints;
 import java.awt.image.BufferStrategy;
+import java.lang.reflect.Method;
+import sun.awt.image.SunVolatileImage;
 
 /**
  *
@@ -11,6 +15,7 @@ import java.awt.image.BufferStrategy;
 public class Canvas extends java.awt.Canvas {
 
 	private Environment env = null;
+	private Image image = null;
 	private int w = 0;
 	private int h = 0;
 	
@@ -30,7 +35,7 @@ public class Canvas extends java.awt.Canvas {
 		g.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_SPEED);
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
 		g.setRenderingHint(RenderingHints.KEY_DITHERING, RenderingHints.VALUE_DITHER_DISABLE);
-		g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+		g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
 
 		g.clearRect(0, 0, w, h);
 

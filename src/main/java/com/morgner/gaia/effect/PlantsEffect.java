@@ -68,7 +68,7 @@ public class PlantsEffect extends Effect {
 
 			if(!affectedResource.hasResource("fire")) {
 
-				if(Gaia.rand.nextDouble() > Math.pow(0.99, affectedResource.getEnvironment().getPlantsFactor())) {
+				if(Gaia.rand.nextDouble() > Math.pow(0.99, (affectedResource.getSunExposure() + affectedResource.getEnvironment().getPlantsFactor()))) {
 
 					if(existingPlants == 0) {
 
@@ -77,7 +77,7 @@ public class PlantsEffect extends Effect {
 					}
 
 					if(existingPlants < 25) {
-						affectedResource.addResource("moisture", -8);
+						affectedResource.addResource("moisture", -4);
 						affectedResource.addResource("plants", 1);
 					}
 				}

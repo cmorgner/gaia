@@ -15,4 +15,5 @@ public interface Entity {
 	public int getX();
 	public int getY();
 	public boolean contains(Point p);
+	public boolean isAlive();
 }
