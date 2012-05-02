@@ -424,7 +424,7 @@ public class Resource implements Entity {
 			}
 
 			// evaporization
-			if(Gaia.rand.nextDouble() > (Math.pow(0.99, 1.0 / (double)getWater()))) {
+			if(Gaia.rand.nextDouble() > (Math.pow(0.999, 1.0 / (double)getWater()))) {
 				addWater(-1);
 			}
 			
@@ -603,7 +603,7 @@ public class Resource implements Entity {
 		if(dark <   0) dark =   0;
 		if(dark > 255) dark = 255;
 
-		return new Color(64, 64, 64, dark);
+		return new Color(32, 32, 32, dark);
 		
 	}
 	

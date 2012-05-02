@@ -162,8 +162,12 @@ public class Environment {
 		for (int i = 0; i < width; i++) {
 			for (int j = 0; j < height; j++) {
 
+				
+				resources[i][j].addTerrain(Gaia.rand.nextInt(9) - 4);
 				int terrain = resources[i][j].getTerrain();
 
+				
+				
 				if (terrain < treeLine && terrain >= seaLevel) {
 					resources[i][j].setResource("humus", 5);
 				}
