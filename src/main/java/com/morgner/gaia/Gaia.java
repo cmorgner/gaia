@@ -40,13 +40,13 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	private int viewportWidth = 100;
 	private int viewportHeight = 100;
 	private boolean fire = false;
-	private int width = 129;
-	private int height = 129;
+	private int width = 513;
+	private int height = 513;
 	private int cellSize = 10;
 	private int level = -6;
 	private int keyMask = 0;
 	private int water = 0;
-	private long dt = 0;
+	private long dt = 20;
 	private long gt = 20;
 	
 	private static final int LEFT   = 1;
@@ -59,7 +59,7 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		super("Gaia v0.1", GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration());
 		
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setUndecorated(true);
+		// setUndecorated(true);
 		
 		setMinimumSize(new Dimension(200 + viewportWidth * cellSize, viewportHeight * cellSize));
 		setMaximumSize(new Dimension(200 + viewportWidth * cellSize, viewportHeight * cellSize));

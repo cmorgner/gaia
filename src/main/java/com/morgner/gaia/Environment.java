@@ -30,7 +30,7 @@ public class Environment {
 	
 	private int terrainGenerationIterations = 50;
 	private int terrainGenerationConstant =	100;
-	private int terrainSmoothingIterations = 50;
+	private int terrainSmoothingIterations = 25;
 	private double terrainSmoothingConstant = 0.5;
 	
 	private int waterSourceAmount = 2;
@@ -49,6 +49,8 @@ public class Environment {
 	private double treeLineFactor = 0.9;
 	
 	private double inclinationBrightnessFactor = 2.6;
+	
+	private long iterationCounter = 0;
 
 	public Environment(int r, int width, int height, int viewportWidth, int viewportHeight) {
 
@@ -63,6 +65,13 @@ public class Environment {
 		for (int i = 0; i < width; i++) {
 			for (int j = 0; j < height; j++) {
 				resources[i][j] = new Resource(this, i, j);
+			}
+		}
+		
+		// initialize resources (performance optimization)
+		for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) {
+				resources[i][j].initialize();
 			}
 		}
 	}
@@ -162,7 +171,7 @@ public class Environment {
 				if (terrain <= seaLevel) {
 
 					resources[i][j].setWater(seaLevel - terrain);
-					resources[i][j].setSink(true);
+//					resources[i][j].setSink(true);
 				}
 			}
 		}
@@ -188,7 +197,7 @@ public class Environment {
 			minWaterSourceHeight -= 1;
 		}
 
-		calculateNormals();
+		calculateNormals(true);
 		
 		// add animal
 		for(int i=0; i<100; i++) {
@@ -236,7 +245,7 @@ public class Environment {
 		pendingAdditionResources.clear();
 		pendingRemovalResources.clear();
 		
-		calculateNormals();
+		iterationCounter++;
 	}
 
 	public void draw(Graphics g) {
@@ -401,7 +410,7 @@ public class Environment {
 		Resource bottomLeft = getResource(x3, y3);
 		Resource bottomRight = getResource(x4, y4);
 
-		int sum = 0;
+		int sum = 1;
 
 		sum += topLeft.getTerrain();
 		sum += topRight.getTerrain();
@@ -565,19 +574,13 @@ public class Environment {
 		return seaWaterHeight;
 	}
 
+	public boolean isActive(Resource res) {
+		return activeResources.contains(res);
+	}
+	
 	public void activate(Resource res) {
 		if (!activeResources.contains(res)) {
 			pendingAdditionResources.add(res);
-
-			/*
-			// add neighbours too
-			for(Resource n : res.getNeighbours()) {
-			if(!activeResources.contains(n)) {
-			pendingAdditionResources.add(n);
-			}
-			}
-			 * 
-			 */
 		}
 	}
 
@@ -612,29 +615,45 @@ public class Environment {
 	}
 
 	public void calculateNormals() {
+		calculateNormals(false);
+	}
+	
+	public void calculateNormals(boolean calculateAll) {
 
 		for (int x = 0; x < width; x++) {
 			for (int y = 0;	y < height; y++) {
 		
 				Resource res = getResource(x, y);
 
-				Resource left   = getResource(x-1,   y);
-				Resource right  = getResource(x+1,   y);
-				Resource top    = getResource(  x, y-1);
-				Resource bottom = getResource(  x, y+1);
-
-				int tl =   left.getTerrain();
-				int tr =  right.getTerrain();
-				int tt =    top.getTerrain() + (top.getResource("plants") * 4);
-				int tb = bottom.getTerrain();
-	
-				int sx = tl - tr;
-				int sy = tt - tb;
-
-				res.setResource("normalX", -sx);
-				res.setResource("normalY",  sy);
+				// optimization: calculate normals only for active resources
+				if(calculateAll || res.isAlive()) {
+					
+					calculateNormal(res);
+				}
 			}
 		}
+	}
+	
+	public void calculateNormal(Resource res) {
+
+		int x = res.getX();
+		int y = res.getY();
+		
+		Resource left   = getResource(x-1,   y);
+		Resource right  = getResource(x+1,   y);
+		Resource top    = getResource(  x, y-1);
+		Resource bottom = getResource(  x, y+1);
+
+		int tl =   left.getTerrain();
+		int tr =  right.getTerrain();
+		int tt =    top.getTerrain() + (top.getResource("plants") * 4);
+		int tb = bottom.getTerrain();
+
+		int sx = tl - tr;
+		int sy = tt - tb;
+
+		res.setNormalX(-sx);
+		res.setNormalY(sy);
 	}
 
 	public double getInclinationBrightnessFactor() {
@@ -643,8 +662,6 @@ public class Environment {
 
 	public void setInclinationBrightnessFactor(double inclinationBrightnessFactor) {
 		this.inclinationBrightnessFactor = inclinationBrightnessFactor;
-		
-		System.out.println(inclinationBrightnessFactor);
 	}
 
 	public int getShadowBrightness() {

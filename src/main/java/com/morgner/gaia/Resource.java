@@ -4,7 +4,6 @@ import com.morgner.gaia.effect.ErosionEffect;
 import com.morgner.gaia.effect.FireEffect;
 import com.morgner.gaia.effect.PlantsEffect;
 import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.util.*;
 import java.util.List;
 
@@ -15,8 +14,15 @@ import java.util.List;
 public class Resource implements Entity {
 
 	private final Map<String, Integer> resources = new HashMap<String, Integer>();
+	private final List<Resource> directNeighbours = new LinkedList<Resource>();
+	private final List<Resource> allNeighbours = new LinkedList<Resource>();
+	private final List<Effect> effects = new ArrayList<Effect>(20);
+		
+	private Comparator<Resource> terrainHeightComparator = null;
 	private Environment env = null;
 	private boolean isSink = false;
+	private int normalX = 0;
+	private int normalY = 0;
 	private int terrain = 0;
 	private int water = 0;
 	private int type = 0;
@@ -28,6 +34,51 @@ public class Resource implements Entity {
 		this.env = env;
 		this.x = x;
 		this.y = y;
+		
+		terrainHeightComparator = new Comparator<Resource>() {
+
+			@Override public int compare(Resource o1, Resource o2) {
+
+				int t1 = o1.getTerrain();
+				int t2 = o2.getTerrain();
+
+				if(t1  < t2) return -1;
+				if(t1  > t2) return  1;
+
+				return 0;
+			}
+		};
+	}
+	
+	public void initialize() {
+		
+		Resource top = env.getResource(x, y-1);
+		directNeighbours.add(top);
+		allNeighbours.add(top);
+
+		Resource left = env.getResource(x-1, y);
+		directNeighbours.add(left);
+		allNeighbours.add(left);
+
+		Resource right = env.getResource(x+1, y);
+		directNeighbours.add(right);
+		allNeighbours.add(right);
+
+		Resource bottom = env.getResource(x, y+1);
+		directNeighbours.add(bottom);
+		allNeighbours.add(bottom);
+
+		Resource topLeft = env.getResource(x-1, y-1);
+		allNeighbours.add(topLeft);
+
+		Resource topRight = env.getResource(x+1, y-1);
+		allNeighbours.add(topRight);
+
+		Resource bottomLeft = env.getResource(x-1, y+1);
+		allNeighbours.add(bottomLeft);
+
+		Resource bottomRight = env.getResource(x+1, y+1);
+		allNeighbours.add(bottomRight);
 	}
 	
 	public List<Resource> getNeighbours() {
@@ -35,41 +86,23 @@ public class Resource implements Entity {
 	}
 	
 	public List<Resource> getNeighbours(boolean directOnly, boolean shuffle) {
-		
-		List<Resource> neighbours = new LinkedList<Resource>();
-		
-		Resource top = env.getResource(x, y-1);
-		if(top != null) neighbours.add(top);
-		
-		Resource left = env.getResource(x-1, y);
-		if(left != null) neighbours.add(left);
-		
-		Resource right = env.getResource(x+1, y);
-		if(right != null) neighbours.add(right);
 
-		Resource bottom = env.getResource(x, y+1);
-		if(bottom != null) neighbours.add(bottom);
-
-		if(!directOnly) {
+		List<Resource> list = null;
+		if(directOnly) {
 			
-			Resource topLeft = env.getResource(x-1, y-1);
-			if(topLeft != null) neighbours.add(topLeft);
-
-			Resource topRight = env.getResource(x+1, y-1);
-			if(topRight != null) neighbours.add(topRight);
-
-			Resource bottomLeft = env.getResource(x-1, y+1);
-			if(bottomLeft != null) neighbours.add(bottomLeft);
-
-			Resource bottomRight = env.getResource(x+1, y+1);
-			if(bottomRight != null) neighbours.add(bottomRight);
+			list = directNeighbours;
+			
+		} else {
+			
+			list = allNeighbours;
 		}
-		
+			
 		if(shuffle) {
-			Collections.shuffle(neighbours);
+			
+			Collections.shuffle(list);
 		}
 		
-		return neighbours;
+		return list;
 	}
 	
 	public void setResource(String name, int amount) {
@@ -191,7 +224,7 @@ public class Resource implements Entity {
 			if(b <  64) b =  64;
 			if(b > 255) b = 255;
 			
-			int a = 32 + (water * 2);
+			int a = 64 + (water * 2);
 			if(a <   0) a =   0;
 			if(a > 255) a = 255;
 			
@@ -212,33 +245,36 @@ public class Resource implements Entity {
 	
 	public Color blend(Color dest, Color source) {
 
-		double alpha = (double)source.getAlpha() / 255.0;
+		double alpha = (double)source.a / 255.0;
+		double neg   = 1.0 - alpha;
 		
-		int r = (int)Math.rint((alpha * (double)source.getRed()) + ((1.0 - alpha) * (double)dest.getRed()));
-		int g = (int)Math.rint((alpha * (double)source.getGreen()) + ((1.0 - alpha) * (double)dest.getGreen()));
-		int b = (int)Math.rint((alpha * (double)source.getBlue()) + ((1.0 - alpha) * (double)dest.getBlue()));
+		int r = (int)Math.rint((alpha * (double)source.r) + (neg * (double)dest.r));
+		int g = (int)Math.rint((alpha * (double)source.g) + (neg * (double)dest.g));
+		int b = (int)Math.rint((alpha * (double)source.b) + (neg * (double)dest.b));
 		
-		return new Color(r, g, b);
+		return new Color(r, g, b, 255);
 	}
 	
-	public void draw(Graphics gr, int x, int y, int w, int h, Color color) {
+	private void draw(Graphics gr, int x, int y, int w, int h, Color color) {
 		
-		gr.setColor(color);
+		gr.setColor(new java.awt.Color(color.r, color.g, color.b, 255));
 		gr.fillRect(x, y, w, h);
 	}
-	
-	public void drawRound(Graphics gr, int x, int y, int w, int h, Color color) {
+
+	/*
+	private void drawRound(Graphics gr, int x, int y, int w, int h, Color color) {
 		
 		int cellSize = env.getCellSize();
 		
-		gr.setColor(color);
+		gr.setColor(new java.awt.Color(color.r, color.g, color.b, 255));
 		gr.fillRoundRect(x, y, w, h, cellSize, cellSize);
 	}
+	*/
 	
 	@Override
 	public List<Effect> update(final long dt) {
 
-		List<Effect> effects = new ArrayList<Effect>(20);
+		effects.clear();
 		
 		if(getType() > 0) {
 
@@ -275,16 +311,8 @@ public class Resource implements Entity {
 			setResource("_water", env.getWaterTrail());
 			setResource("moisture", 255);
 
-			List<Resource> sortedNeighbours = new ArrayList<Resource>(8);
-			sortedNeighbours.addAll(getNeighbours(false, false));
-			
-			Collections.sort(sortedNeighbours, new Comparator<Resource>() {
-				@Override public int compare(Resource o1, Resource o2) {
-					return new Integer(o1.getTerrain()).compareTo(new Integer(o2.getTerrain()));
-				}
-			});
-			
-			for(final Resource n : sortedNeighbours) {
+			Collections.sort(allNeighbours, terrainHeightComparator);
+			for(final Resource n : allNeighbours) {
 
 				effects.add(new Effect(n) {
 
@@ -407,27 +435,37 @@ public class Resource implements Entity {
 			}
 			
 			addResource("_water", -1);
+
+			if(hasResource("_water") || hasResource("moisture")) {
+			}
 		}
 		
 		effects.add(new Effect(this) {
 			@Override public Effect effect() {
-				
+
 				int moisture = affectedResource.getResource("moisture");
+				boolean alive = affectedResource.getType() > 0;
 				int m = 0;
-				
+
 				for(Resource n : affectedResource.getNeighbours()) {
-					m += n.getResource("moisture") - moisture;
+					int nm = n.getResource("moisture");
+					m += nm - moisture;
+					
+					alive |= nm > 0;
 				}
-				
+
 				affectedResource.addResource("moisture", m/8);
 
+				if(!alive) {
+					env.deactivate(affectedResource);
+				}
+				
 				return null;
 			}
 		});
 		
-		if(effects.isEmpty()) {
-			env.deactivate(this);
-		}
+		// continuous calculation of surface normals (spread calculation time)
+		env.calculateNormal(this);
 		
 		return effects;
 	}
@@ -444,7 +482,7 @@ public class Resource implements Entity {
 
 	@Override
 	public boolean isAlive() {
-		return true;
+		return env.isActive(this);
 	}
 	
 	public Environment getEnvironment() {
@@ -532,11 +570,7 @@ public class Resource implements Entity {
 	}
 	
 	public int getSunExposure() {
-
-		int nx = getResources("normalX");
-		int ny = getResources("normalY");
-		
-		return (int)Math.rint((double)(-nx-ny) * 0.5);
+		return (int)Math.rint((double)(-getNormalX()-getNormalY()) * 0.5);
 	}
 	
 	private Color getColorForTerrain() {
@@ -564,10 +598,7 @@ public class Resource implements Entity {
 	
 	private Color getColorForShadows() {
 		
-		int nx = getResources("normalX");
-		int ny = getResources("normalY");
-		
-		int dark = nx+ny;
+		int dark = getNormalX()+getNormalY();
 		dark = (int)Math.rint((double)dark * env.getInclinationBrightnessFactor());
 		if(dark <   0) dark =   0;
 		if(dark > 255) dark = 255;
@@ -578,10 +609,7 @@ public class Resource implements Entity {
 	
 	private Color getColorForHighlights() {
 		
-		int nx = getResources("normalX");
-		int ny = getResources("normalY");
-		
-		int light = -nx-ny;
+		int light = -getNormalX()-getNormalY();
 		light = (int)Math.rint((double)light * env.getInclinationBrightnessFactor() * 0.4);
 		if(light <   0) light =   0;
 		if(light > 255) light = 255;
@@ -620,5 +648,43 @@ public class Resource implements Entity {
 		if(moisture > 5) moisture = 5;
 
 		return colorZones[height][moisture];
+	}
+
+	public int getNormalX() {
+		return normalX;
+	}
+
+	public void setNormalX(int normalX) {
+		this.normalX = normalX;
+	}
+
+	public int getNormalY() {
+		return normalY;
+	}
+
+	public void setNormalY(int normalY) {
+		this.normalY = normalY;
+	}
+	
+	private static class Color {
+		
+		public int r = 0;
+		public int g = 0;
+		public int b = 0;
+		public int a = 0;
+		
+		public Color(int r, int g, int b, int a) {
+			this.r = r;
+			this.g = g;
+			this.b = b;
+			this.a = a;
+		}
+		
+		public Color(int rgb) {
+			this.r = (rgb >> 16) & 0xff;
+			this.g = (rgb >>  8) & 0xff;
+			this.b = rgb & 0xff;
+			this.a = 0xff;
+		}
 	}
 }
