@@ -40,8 +40,8 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	private int viewportWidth = 100;
 	private int viewportHeight = 100;
 	private boolean fire = false;
-	private int width = 513;
-	private int height = 513;
+	private int width = 257;	// must be a power of 2 plus 1 to support terrain generation algo.
+	private int height = 257;	// must be a power of 2 plus 1 to support terrain generation algo.
 	private int cellSize = 10;
 	private int level = -6;
 	private int keyMask = 0;
@@ -84,11 +84,10 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		controlsPanel.add(Box.createRigidArea(buttonDimension));
 		
 		// sliders
-		waterTrailSlider = addSlider(controlsPanel, "Water trail length", 2, 20, 10);
+		waterTrailSlider = addSlider(controlsPanel, "Water trail length", 0, 20, 0);
 		waterSourceAmountSlider = addSlider(controlsPanel, "Water source strength", 0, 50, 1);
 		plantsSlider = addSlider(controlsPanel, "Plant growth", 0, 6, 1);
-		shadowBrightnessSlider = addSlider(controlsPanel, "Shadow brightness", 0, 255, 128);
-		inclinationBrightnessSlider = addSlider(controlsPanel, "Slope shadow brightness", 0, 800, 260);
+		inclinationBrightnessSlider = addSlider(controlsPanel, "Slope shadow brightness", 0, 800, 50);
 		
 		getContentPane().setLayout(new BorderLayout());
 		getContentPane().add(canvas, BorderLayout.CENTER);
@@ -217,6 +216,9 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 			canvas.paint();
 			
 		} catch(Throwable t) {
+			
+			t.printStackTrace();
+			running = false;
 		}
 
 		if(running) {

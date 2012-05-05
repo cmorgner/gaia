@@ -17,6 +17,65 @@ public class Resource implements Entity {
 	private final List<Resource> directNeighbours = new LinkedList<Resource>();
 	private final List<Resource> allNeighbours = new LinkedList<Resource>();
 	private final List<Effect> effects = new ArrayList<Effect>(20);
+	
+	private static final Color A = new Color(0x70, 0x50, 0x30);
+	private static final Color B = new Color(0x75, 0x55, 0x35);
+	private static final Color C = new Color(0x7a, 0x5a, 0x3a);
+	private static final Color D = new Color(0x80, 0x60, 0x40);
+	private static final Color E = new Color(0x85, 0x65, 0x45);
+	private static final Color F = new Color(0x8a, 0x6a, 0x4a);
+	private static final Color G = new Color(0x90, 0x70, 0x50);
+	private static final Color H = new Color(0x95, 0x75, 0x55);
+	private static final Color I = new Color(0x9a, 0x7a, 0x5a);
+	private static final Color J = new Color(0xa0, 0x80, 0x60);
+	private static final Color K = new Color(0xa5, 0x85, 0x65);
+	private static final Color L = new Color(0xaa, 0x8a, 0x6a);
+	private static final Color M = new Color(0xb0, 0x90, 0x70);
+	private static final Color N = new Color(0xb5, 0x95, 0x75);
+	private static final Color O = new Color(0xba, 0x9a, 0x7a);
+	private static final Color P = new Color(0xbb, 0xbb, 0xbb);
+	private static final Color Q = new Color(0xc0, 0xc0, 0xc0);
+	private static final Color R = new Color(0xc8, 0xc8, 0xc8);
+	private static final Color S = new Color(0xcf, 0xcf, 0xcf);
+	private static final Color T = new Color(0xd0, 0xd0, 0xd0);
+	private static final Color U = new Color(0xd8, 0xd8, 0xd8);
+	private static final Color V = new Color(0xdf, 0xdf, 0xdf);
+	private static final Color W = new Color(0xff, 0xff, 0xff);
+
+	private static final int green0 = 0x000000;
+	private static final int green1 = 0x000400;
+	private static final int green2 = 0x000800;
+	
+	private static final Color[][] colorZones = new Color[][] {
+	
+		{ A, add(A, green1), add(A, green2) },
+		{ B, add(B, green1), add(B, green2) },
+		{ C, add(C, green1), add(C, green2) },
+		{ D, add(D, green1), add(D, green2) },
+		{ E, add(E, green1), add(E, green2) },
+		{ F, add(F, green1), add(F, green2) },
+		{ G, add(G, green1), add(G, green2) },
+		{ H, add(H, green1), add(H, green2) },
+		{ I, add(I, green1), add(I, green2) },
+		{ J, add(J, green1), add(J, green2) },
+		{ K, add(K, green1), add(K, green2) },
+		{ L, add(L, green1), add(L, green2) },
+		{ M, add(M, green1), add(M, green2) },
+		{ N, add(N, green1), add(N, green2) },
+		{ O, add(O, green1), add(O, green2) },
+		{ P, add(P, green0), add(P, green0) },
+		{ Q, add(Q, green0), add(Q, green0) },
+		{ R, add(R, green0), add(R, green0) },
+		{ S, add(S, green0), add(S, green0) },
+		{ T, add(T, green0), add(T, green0) },
+		{ U, add(U, green0), add(U, green0) },
+		{ V, add(V, green0), add(V, green0) },
+		{ W, add(W, green0), add(W, green0) }
+
+	};
+	
+	private static final int heightZoneCount = colorZones.length;
+	private static final int moistZoneCount  = colorZones[0].length;
 		
 	private Comparator<Resource> terrainHeightComparator = null;
 	private Environment env = null;
@@ -150,23 +209,21 @@ public class Resource implements Entity {
 	@Override
 	public void drawCell(Graphics gr, int x, int y, int w, int h) {
 		
-		int plants = getResource("plants");
-		int _water = water + getResource("_water");
+		int plants   = getResource("plants");
+		int moisture = getResource("moisture");
+		int _water   = water + getResource("_water");
 
 		int ashes = getResource("ashes");
 		int fire = getResource("fire");
 
 		Color color = getColorForTerrain();
-		color = blend(color, getColorForHeight());
-		color = blend(color, getColorForHighlights());
-		color = blend(color, getColorForShadows());
 
 		if(fire > 0) {
-			
+
 			int r = 0;
 			int g = 0;
 			int b = 0;
-			
+
 			switch(Gaia.rand.nextInt(3)) {
 				case 0:
 					r = 255;
@@ -179,7 +236,7 @@ public class Resource implements Entity {
 					break;
 
 				case 2:
-					
+
 					r = 255;
 					b = 224;
 					break;
@@ -187,13 +244,13 @@ public class Resource implements Entity {
 
 			color = blend(color, new Color(r, g, b, 255));
 		} 
-		
+
 		if(ashes > 0) {
-			
+
 			int r = 0;
 			int g = 0;
 			int b = 0;
-			
+
 			switch(Gaia.rand.nextInt(3)) {
 				case 0:
 					r = 128;
@@ -218,32 +275,52 @@ public class Resource implements Entity {
 			color = blend(color, new Color(r, g, b, 64));
 		}
 
+		/* disabled
+		if(moisture > 0) {
+
+			int v = moisture;
+			if(v <   0) v =  0;
+			if(v >  64) v = 64;
+
+			color = blend(color, new Color(0xff, 0xff, 0xff, v));
+		}
+		*/
+
+
 		if(_water > 0) {
 
-			int b = 170 - (water / 4);
+			int b = 200 - (water / 4);
 			if(b <  64) b =  64;
 			if(b > 255) b = 255;
-			
+
 			int a = 64 + (water * 2);
 			if(a <   0) a =   0;
 			if(a > 255) a = 255;
-			
+
 			color = blend(color, new Color(0, 0, b, a));
 		}
-		
+
 		if(plants > 0) {
 
-			int g = (plants) + 160;
+			int g = (plants) + 200;
 			if(g <  64) g =  64;
 			if(g > 255) g = 255;
-			
+
 			color = blend(color, new Color(0, g, 0, 32));
 		}
 
-		draw(gr, x, y, w, h, color);
+		color = blend(color, getColorForHeight());
+		color = blend(color, getColorForHighlights());
+		color = blend(color, getColorForShadows());
+		
+		try {
+
+			draw(gr, x, y, w, h, color);
+			
+		} catch(Throwable t) {}
 	}
 	
-	public Color blend(Color dest, Color source) {
+	private Color blend(Color dest, Color source) {
 
 		double alpha = (double)source.a / 255.0;
 		double neg   = 1.0 - alpha;
@@ -424,7 +501,7 @@ public class Resource implements Entity {
 			}
 
 			// evaporization
-			if(Gaia.rand.nextDouble() > (Math.pow(0.999, 1.0 / (double)getWater()))) {
+			if(Gaia.rand.nextDouble() > (Math.pow(0.9, 1.0 / (double)getWater()))) {
 				addWater(-1);
 			}
 			
@@ -435,11 +512,9 @@ public class Resource implements Entity {
 			}
 			
 			addResource("_water", -1);
-
-			if(hasResource("_water") || hasResource("moisture")) {
-			}
 		}
-		
+
+		/* disabled
 		effects.add(new Effect(this) {
 			@Override public Effect effect() {
 
@@ -448,22 +523,29 @@ public class Resource implements Entity {
 				int m = 0;
 
 				for(Resource n : affectedResource.getNeighbours()) {
-					int nm = n.getResource("moisture");
-					m += nm - moisture;
 					
-					alive |= nm > 0;
+					int nm = n.getResource("moisture");
+					if(n.higher(affectedResource, -32)) {
+						m += ((nm - moisture));
+					}
+					
+					alive |= Math.abs(nm) > 0;
 				}
 
-				affectedResource.addResource("moisture", m/8);
+				int v = (m/8 + m%8);
+				
+				affectedResource.addResource("moisture", v);
 
-				if(!alive) {
+				if(!alive && v == 0 && moisture == 0) {
 					env.deactivate(affectedResource);
 				}
 				
 				return null;
 			}
 		});
+		*/
 		
+				
 		// continuous calculation of surface normals (spread calculation time)
 		env.calculateNormal(this);
 		
@@ -577,9 +659,9 @@ public class Resource implements Entity {
 		
 		double height = getTerrain();
 
-		int h = (int)Math.rint((height / (double)env.getMaxHeight()) * 4.0) - 1;
-		int m = (int)Math.rint(((double)getResource("moisture") / (double)255.0) * 6.0) - 1;
-
+		int h = (int)Math.rint(((double)height / (double)env.getMaxHeight()) * heightZoneCount) - 1;
+		int m = (int)Math.rint(((double)getResource("moisture") / (double)255.0) * moistZoneCount) - 1;		
+		
 		return getColorForZone(h, m);
 		
 	}
@@ -587,13 +669,11 @@ public class Resource implements Entity {
 	private Color getColorForHeight() {
 		
 		int height = getTerrain();
-		int x = (int)Math.rint(height * env.getColorFactor());
+		int x = (int)Math.rint(((double)height / (double)env.getMaxHeight()) * 128.0) + 128;
 		if(x <   0) x =   0;
 		if(x > 255) x = 255;
 		
-		int v = env.getShadowBrightness();
-
-		return new Color(v, v, v, 255-x);
+		return new Color(0, 0, 0, 255-x);
 	}
 	
 	private Color getColorForShadows() {
@@ -603,7 +683,7 @@ public class Resource implements Entity {
 		if(dark <   0) dark =   0;
 		if(dark > 255) dark = 255;
 
-		return new Color(32, 32, 32, dark);
+		return new Color(0, 0, 0, dark);
 		
 	}
 	
@@ -618,34 +698,13 @@ public class Resource implements Entity {
 		
 	}
 	
-	private static final Color A = new Color(0x775533);	// brown
-	private static final Color B = new Color(0x664422);	// darker brown
-	private static final Color C = new Color(0x555522);	// slightly green
-	private static final Color D = new Color(0x334411);	// darker green
-	private static final Color E = new Color(0x7a5a3a);	// lighter brown
-	
-	private static final Color F = new Color(0x666666);
-	private static final Color G = new Color(0x666666);
-	private static final Color H = new Color(0x666666);
-	private static final Color I = new Color(0x666666);
-	private static final Color J = new Color(0x666666);
-	private static final Color K = new Color(0x666666);
-	
-	private static final Color[][] colorZones = new Color[][] {
-	
-		{ A, A, A, B, C, D },
-		{ A, A, A, B, B, C },
-		{ E, A, A, B, B, B },
-		{ F, G, H, I, J, K }
-
-	};
-	
 	private Color getColorForZone(int height, int moisture) {
 		
 		if(height < 0) height = 0;
-		if(height > 3) height = 3;
 		if(moisture < 0) moisture = 0;
-		if(moisture > 5) moisture = 5;
+
+		if(height >= heightZoneCount) height = heightZoneCount-1;
+		if(moisture >= moistZoneCount) moisture = moistZoneCount-1;
 
 		return colorZones[height][moisture];
 	}
@@ -673,18 +732,32 @@ public class Resource implements Entity {
 		public int b = 0;
 		public int a = 0;
 		
+		public Color(int r, int g, int b) {
+			this(r, g, b, 255);
+		}
+		
 		public Color(int r, int g, int b, int a) {
 			this.r = r;
 			this.g = g;
 			this.b = b;
 			this.a = a;
 		}
+	}
+	
+	private static Color add(Color color, int rgb) {
 		
-		public Color(int rgb) {
-			this.r = (rgb >> 16) & 0xff;
-			this.g = (rgb >>  8) & 0xff;
-			this.b = rgb & 0xff;
-			this.a = 0xff;
-		}
+		int r = color.r + ((rgb >> 16) & 0xff);
+		int g = color.g + ((rgb >>  8) & 0xff);
+		int b = color.b + ((rgb      ) & 0xff);
+
+		if(r < 0) r = 0;
+		if(g < 0) g = 0;
+		if(b < 0) b = 0;
+		
+		if(r > 255) r = 255;
+		if(g > 255) g = 255;
+		if(b > 255) b = 255;
+		
+		return new Color(r, g, b);
 	}
 }

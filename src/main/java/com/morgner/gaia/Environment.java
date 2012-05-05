@@ -34,11 +34,11 @@ public class Environment {
 	private double terrainSmoothingConstant = 0.5;
 	
 	private int waterSourceAmount = 2;
-	private int waterSources = 20;
+	private int waterSources = 5;
 	private int waterTrail = 0;
 	private int seaLevel = 0;
 	private int seaWaterHeight = 10;
-	private double seaLevelFactor = 0.3;
+	private double seaLevelFactor = 0.0;
 	
 	private int minHeight = 0;
 	private int maxHeight = 1000;
@@ -46,12 +46,10 @@ public class Environment {
 
 	private int plantsFactor = 1;
 	private int shadowBrightness = 128;
-	private double treeLineFactor = 0.9;
+	private double treeLineFactor = 0.8;
 	
-	private double inclinationBrightnessFactor = 2.6;
+	private double inclinationBrightnessFactor = 0.5;
 	
-	private long iterationCounter = 0;
-
 	public Environment(int r, int width, int height, int viewportWidth, int viewportHeight) {
 
 		this.cellSize = r;
@@ -204,7 +202,7 @@ public class Environment {
 		calculateNormals(true);
 		
 		// add animal
-		for(int i=0; i<100; i++) {
+		for(int i=0; i<0; i++) {
 			entities.add(new Animal(this, Gaia.rand.nextInt(width), Gaia.rand.nextInt(height)));
 		}
 	}
@@ -218,7 +216,6 @@ public class Environment {
 		// collect effects from environment
 		for (Resource res : activeResources) {
 			effects.addAll(res.update(dt));
-			Thread.yield();
 		}
 
 		// collect effects from entities
@@ -230,26 +227,28 @@ public class Environment {
 			}
 			effects.addAll(e);
 		}
-
+		
 		// apply effects on environment
 		while (effects.peek() != null) {
 
 			Effect e = effects.poll();
-
-			Effect secondary = e.effect();
-			if (secondary != null) {
-				effects.add(secondary);
+			
+			for(int i=0; i<3 && e != null; i++) {
+				
+				if(e != null) {
+					
+					Effect secondary = e.effect();
+					if (secondary != null) {
+						effects.add(secondary);
+					}
+				}
 			}
-
-			Thread.yield();
 		}
 
 		activeResources.removeAll(pendingRemovalResources);
 		activeResources.addAll(pendingAdditionResources);
 		pendingAdditionResources.clear();
 		pendingRemovalResources.clear();
-		
-		iterationCounter++;
 	}
 
 	public void draw(Graphics g) {
