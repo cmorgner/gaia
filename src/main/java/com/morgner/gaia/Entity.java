@@ -2,6 +2,7 @@ package com.morgner.gaia;
 
 import java.awt.Graphics;
 import java.awt.Point;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -11,7 +12,7 @@ import java.util.List;
 public interface Entity {
 	
 	public void drawCell(Graphics g, int x, int y, int w, int h);
-	public List<Effect> update(long dt);
+	public void update(Collection<Effect> effects, long dt);
 	public int getX();
 	public int getY();
 	public boolean contains(Point p);

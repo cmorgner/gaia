@@ -24,18 +24,18 @@ public class ErosionEffect extends Effect {
 	}
 	
 	@Override
-	public Effect effect() {
+	public void effect() {
 
 		if(affectedResource.getType() != 0) {
-			return null;
+			return;
 		}
 
 		if(affectedResource.isSink()) {
-			return null;
+			return;
 		}
 		
 		if(affectedResource.hasResource("plants")) {
-			return null;
+			return;
 		}
 		
 		// erosion
@@ -53,7 +53,5 @@ public class ErosionEffect extends Effect {
 				affectedResource.addTerrain(1);
 			}
 		}
-		
-		return null;
 	}
 }

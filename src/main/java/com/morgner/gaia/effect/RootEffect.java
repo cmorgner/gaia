@@ -19,7 +19,7 @@ public class RootEffect extends Effect {
 	}
 	
 	@Override
-	public Effect effect() {
+	public void effect() {
 		
 		if(affectedResource.hasResource("deadPlants") && Gaia.rand.nextDouble() > 0.9) {
 			
@@ -43,9 +43,6 @@ public class RootEffect extends Effect {
 		if(!affectedResource.isSink() && Gaia.rand.nextDouble() > 0.9) {
 			affectedResource.addTerrain(Gaia.rand.nextInt(3) - 1);
 		}
-		
-		
-		return null;
 	}
 	
 }

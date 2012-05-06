@@ -12,8 +12,8 @@ import com.morgner.gaia.Resource;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Point;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 
 /**
  *
@@ -53,7 +53,7 @@ public class Animal implements Entity {
 	}
 
 	@Override
-	public List<Effect> update(long dt) {
+	public void update(Collection<Effect> effects, long dt) {
 		
 		Resource pos = env.getResource(x, y);
 		double prob = 0.5;
@@ -61,7 +61,7 @@ public class Animal implements Entity {
 		// die in water
 		if(pos.hasWater()) {
 			alive = false;
-			return Collections.emptyList();
+			return;
 		}
 		
 		if(food < 10000) {
@@ -112,7 +112,7 @@ public class Animal implements Entity {
 			}
 		}
 		
-		return Collections.emptyList();
+		return;
 	}
 
 	@Override

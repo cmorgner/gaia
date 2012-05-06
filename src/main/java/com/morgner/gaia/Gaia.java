@@ -21,6 +21,7 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	private Dimension buttonDimension = new Dimension(160, 25);
 	private JToggleButton elevateButton = null;
 	private JToggleButton lowerButton = null;
+	private JToggleButton smoothButton = null;
 	private JToggleButton addWaterButton = null;
 	private JToggleButton removeWaterButton = null;
 	private JToggleButton addFireButton = null;
@@ -39,14 +40,15 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	private Environment environment = null;
 	private int viewportWidth = 100;
 	private int viewportHeight = 100;
+	private boolean smooth = false;
 	private boolean fire = false;
-	private int width = 257;	// must be a power of 2 plus 1 to support terrain generation algo.
-	private int height = 257;	// must be a power of 2 plus 1 to support terrain generation algo.
+	private int width = 513;	// must be a power of 2 plus 1 to support terrain generation algo.
+	private int height = 513;	// must be a power of 2 plus 1 to support terrain generation algo.
 	private int cellSize = 10;
 	private int level = -6;
 	private int keyMask = 0;
 	private int water = 0;
-	private long dt = 20;
+	private long dt = 50;
 	private long gt = 20;
 	
 	private static final int LEFT   = 1;
@@ -64,7 +66,7 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		setMinimumSize(new Dimension(200 + viewportWidth * cellSize, viewportHeight * cellSize));
 		setMaximumSize(new Dimension(200 + viewportWidth * cellSize, viewportHeight * cellSize));
 		
-		timer = Executors.newScheduledThreadPool(10);
+		timer = Executors.newScheduledThreadPool(2);
 		
 		environment = new Environment(cellSize, width, height, viewportWidth, viewportHeight);
 		canvas = new Canvas(environment);
@@ -77,6 +79,7 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		// toggle buttons
 		lowerButton = addToggleButton(controlsPanel, buttonGroup, "Lower Terrain");
 		elevateButton = addToggleButton(controlsPanel, buttonGroup, "Elevate Terrain");
+		smoothButton = addToggleButton(controlsPanel, buttonGroup, "Smooth Terrain");
 		addWaterButton = addToggleButton(controlsPanel, buttonGroup, "Add Water");
 		removeWaterButton = addToggleButton(controlsPanel, buttonGroup, "Remove Water");
 		addFireButton = addToggleButton(controlsPanel, buttonGroup, "Set Fire");
@@ -95,39 +98,11 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		
 		pack();
 
-		/*
-		GraphicsEnvironment env = GraphicsEnvironment.getLocalGraphicsEnvironment();
-		GraphicsDevice dev      = env.getDefaultScreenDevice();
-		
-		try {
-			
-			DisplayMode mode        = null;
-			
-			for(DisplayMode m : dev.getDisplayModes()) {
-				
-				System.out.println(m.getWidth() + "x" + m.getHeight() + "@" + m.getBitDepth() + " " + m.getRefreshRate());
-				
-				if(m.getWidth() == 800 && m.getHeight() == 600 && m.getRefreshRate() == 75) {
-					mode = m;
-				}
-			}
-			
-			dev.setFullScreenWindow(this);
-			dev.setDisplayMode(mode);
-			
-		} catch(Throwable t) {
-			
-			t.printStackTrace();
-			dev.setFullScreenWindow(null);
-		}
-		*/
-		
-		
 		canvas.addKeyListener(this);
 		canvas.addMouseListener(this);
 		canvas.addMouseMotionListener(this);
 		canvas.addMouseWheelListener(this);
-		
+
 		canvas.createBufferStrategy(2);
 		
 		running = true;
@@ -212,6 +187,17 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	
 	public void paint() {
 		
+		int dx = 0;
+		int dy = 0;
+		if((keyMask & LEFT)  == LEFT)   dx = -10;
+		if((keyMask & RIGHT) == RIGHT)  dx =  10;
+		if((keyMask & UP)    == UP)     dy = -10;
+		if((keyMask & DOWN)  == DOWN)   dy =  10;
+		
+		if(dx != 0 || dy != 0) {
+			environment.pan(dx, dy);
+		}
+
 		try {
 			canvas.paint();
 			
@@ -229,24 +215,13 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 				}
 			}, gt, TimeUnit.MILLISECONDS);
 		}
-
-		int dx = 0;
-		int dy = 0;
-		if((keyMask & LEFT)  == LEFT)   dx = -1;
-		if((keyMask & RIGHT) == RIGHT)  dx =  1;
-		if((keyMask & UP)    == UP)     dy = -1;
-		if((keyMask & DOWN)  == DOWN)   dy =  1;
-		
-		if(dx != 0 || dy != 0) {
-			environment.pan(dx, dy);
-		}
 		
 	}
 	
 	public void update() {
 		
-		environment.update(dt);
-		
+		try { environment.update(dt); } catch(Throwable t) { }
+
 		if(running) {
 
 			try {
@@ -258,14 +233,8 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 				
 			} catch(Throwable t) {t.printStackTrace();}
 		}
-		
+				
 	}
-	
-	/*
-	public static int div(int level, double div) {
-		return (int)Math.floor((double)level / div);
-	}
-	* */
 	
 	@Override
 	public void keyPressed(KeyEvent e)
@@ -363,16 +332,19 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		
+		smooth = false;
 		fire = false;
 		level = 0;
 		water = 0;
 		
 		if(e.getSource().equals(lowerButton)) {
-			level = -6;
+			level = -8;
 		} else if(e.getSource().equals(elevateButton)) {
-			level = 6;
+			level = 8;
+		} else if(e.getSource().equals(smoothButton)) {
+			smooth = true;
 		} else if(e.getSource().equals(addWaterButton)) {
-			water = 2;
+			water = 20;
 		} else if(e.getSource().equals(removeWaterButton)) {
 			water = -255;
 		} else if(e.getSource().equals(addFireButton)) {
@@ -430,6 +402,10 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 					
 					res.setResource("fire", 1);
 				}
+				
+				if(smooth) {
+					smooth(res,0 );
+				}
 			}
 			
 		}
@@ -442,13 +418,51 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 			return;
 		}
 
-		res.addTerrain(level);
+		Set<Resource> s = new LinkedHashSet<Resource>();
 		
 		for(Resource n1 : res.getNeighbours(false, false)) {
-			n1.addTerrain(level / 2);
+			
+			for(Resource n2 : n1.getNeighbours(false, false)) {
+				
+				for(Resource n3 : n2.getNeighbours(false, false)) {
+					
+					if(!s.contains(n3)) {
+						n3.addTerrain(level / 4);
+					}
+					s.add(n3);
+				}
+				if(!s.contains(n2)) {
+					n2.addTerrain(level / 3);
+				}
+				s.add(n2);
+			}
+			if(!s.contains(n1)) {
+				n1.addTerrain(level / 2);
+			}
+			s.add(n1);
 		}
+
+		res.addTerrain(level);
+	}
+	
+	private void smooth(final Resource res, int depth) {
 		
+		if(depth > 1) {
+			return;
+		}
+
+		int t = res.getTerrain();
+		int sum = 0;
+
+		for (Resource n1 : res.getNeighbours()) {
+			sum += n1.getTerrain() - t;
+		}
+
+		res.addTerrain((int)Math.rint(((double) sum / 4.0) * 0.5));
 		
+		for(Resource n : res.getNeighbours(false, false)) {
+			smooth(n, depth+1);
+		}
 	}
 	
 	public static void main(String[] args) {

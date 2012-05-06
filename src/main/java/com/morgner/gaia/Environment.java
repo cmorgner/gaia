@@ -1,10 +1,10 @@
 package com.morgner.gaia;
 
 import com.morgner.gaia.entity.Animal;
+import com.morgner.gaia.entity.Player;
 import java.awt.Graphics;
 import java.awt.Point;
 import java.util.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  *
@@ -15,18 +15,20 @@ public class Environment {
 	private final Set<Resource> pendingAdditionResources = new LinkedHashSet<Resource>();
 	private final Set<Resource> pendingRemovalResources = new LinkedHashSet<Resource>();
 	private final Set<Resource> activeResources = new LinkedHashSet<Resource>();
-	private final Queue<Effect> effects = new ConcurrentLinkedQueue<Effect>();
+	private final List<Effect> effects = new LinkedList<Effect>();
 	private List<Entity> entities = new LinkedList<Entity>();
 	private Resource[][] resources = null;
+	private Player player = null;
 	private int cellSize = 0;
 	private int width = 0;
 	private int height = 0;
 	private int viewportX = 0;
 	private int viewportY = 0;
-	private int viewportX0 = 0;
-	private int viewportY0 = 0;
 	private int viewportWidth = 0;
 	private int viewportHeight = 0;
+	private int initialCellSize = 0;
+	private int initialViewportWidth = 0;
+	private int initialViewportHeight = 0;
 	
 	private int terrainGenerationIterations = 50;
 	private int terrainGenerationConstant =	100;
@@ -46,7 +48,7 @@ public class Environment {
 
 	private int plantsFactor = 1;
 	private int shadowBrightness = 128;
-	private double treeLineFactor = 0.8;
+	private double treeLineFactor = 0.675;
 	
 	private double inclinationBrightnessFactor = 0.5;
 	
@@ -55,8 +57,9 @@ public class Environment {
 		this.cellSize = r;
 		this.width = width;
 		this.height = height;
-		this.viewportWidth = viewportWidth;
-		this.viewportHeight = viewportHeight;
+		this.initialCellSize =  cellSize;
+		this.initialViewportWidth = viewportWidth;
+		this.initialViewportHeight = viewportHeight;
 
 		resources = new Resource[width][height];
 
@@ -72,6 +75,8 @@ public class Environment {
 				resources[i][j].initialize();
 			}
 		}
+
+		player = new Player(this, width * 2, height * 2);
 	}
 
 	public void initialize() {
@@ -112,9 +117,8 @@ public class Environment {
 					effects.add(new Effect(res) {
 
 						@Override
-						public Effect effect() {
+						public void effect() {
 							affectedResource.addTerrain(val);
-							return null;
 						}
 					});
 				}
@@ -214,66 +218,61 @@ public class Environment {
 	public void update(long dt) {
 
 		// collect effects from environment
-		for (Resource res : activeResources) {
-			effects.addAll(res.update(dt));
+		synchronized(activeResources) {
+			
+			for (Resource res : activeResources) {
+				res.update(effects, dt);
+			}
 		}
 
+		synchronized(activeResources) {
+			activeResources.removeAll(pendingRemovalResources);
+		}
+		
 		// collect effects from entities
 		for (Iterator<Entity> it = entities.iterator(); it.hasNext();) {
 			Entity entity = it.next();
-			List<Effect> e = entity.update(dt);
+			entity.update(effects, dt);
 			if(!entity.isAlive()) {
 				it.remove();
 			}
-			effects.addAll(e);
 		}
 		
-		// apply effects on environment
-		while (effects.peek() != null) {
-
-			Effect e = effects.poll();
-			
-			for(int i=0; i<3 && e != null; i++) {
-				
-				if(e != null) {
-					
-					Effect secondary = e.effect();
-					if (secondary != null) {
-						effects.add(secondary);
-					}
-				}
-			}
+		player.update(effects, dt);
+		
+		for(Effect e : effects) {
+			e.effect();
 		}
+		
+		effects.clear();
 
-		activeResources.removeAll(pendingRemovalResources);
-		activeResources.addAll(pendingAdditionResources);
+		synchronized(activeResources) {
+			activeResources.addAll(pendingAdditionResources);
+		}
+		
 		pendingAdditionResources.clear();
 		pendingRemovalResources.clear();
 	}
 
 	public void draw(Graphics g) {
 
-		// update viewport
-		int tmpX = viewportX;
-		int tmpY = viewportY;
-
-		viewportX += (int) Math.rint((double) (viewportX - viewportX0) * 0.1);
-		viewportY += (int) Math.rint((double) (viewportY - viewportY0) * 0.1);
-
-		viewportX0 = tmpX;
-		viewportY0 = tmpY;
-
-		if (viewportX < 0) {
+		viewportWidth  = (int)Math.rint((double)initialViewportWidth * ((double)initialCellSize / (double)cellSize));
+		viewportHeight = (int)Math.rint((double)initialViewportHeight * ((double)initialCellSize / (double)cellSize));
+		
+		viewportX = (int)Math.rint(player.getScaledX() - ((double) viewportWidth / 2.0));
+		viewportY = (int)Math.rint(player.getScaledY() - ((double)viewportHeight / 2.0));
+		
+		if (getViewportX() < 0) {
 			viewportX = 0;
 		}
-		if (viewportY < 0) {
+		if (getViewportY() < 0) {
 			viewportY = 0;
 		}
 
-		if (viewportX + viewportWidth > width) {
+		if (getViewportX() + viewportWidth > width) {
 			viewportX = width - viewportWidth;
 		}
-		if (viewportY + viewportHeight > height) {
+		if (getViewportY() + viewportHeight > height) {
 			viewportY = height - viewportHeight;
 		}
 
@@ -281,8 +280,8 @@ public class Environment {
 		for (int i = 0; i < viewportWidth + 3; i++) {
 			for (int j = 0; j < viewportHeight + 3; j++) {
 
-				int x = i + viewportX;
-				int y = j + viewportY;
+				int x = i + getViewportX();
+				int y = j + getViewportY();
 
 				if (x >= 0 && x < width && y >= 0 && y < height) {
 					resources[x][y].drawCell(g, i * cellSize, j * cellSize, cellSize, cellSize);
@@ -290,69 +289,41 @@ public class Environment {
 			}
 		}
 		
+		// draw entities
 		for(Entity entity : entities) {
 			
-			int x = (entity.getX() - viewportX) * cellSize;
-			int y = (entity.getY() - viewportY) * cellSize;
+			int x = (entity.getX() - getViewportX()) * cellSize;
+			int y = (entity.getY() - getViewportY()) * cellSize;
 
-			//if (x >= 0 && x < viewportWidth && y >= 0 && y < viewportHeight) {
-				entity.drawCell(g, x, y, cellSize, cellSize);
-			//}
+			entity.drawCell(g, x, y, cellSize, cellSize);
+		}
+
+		// draw player
+		{
+			int x = (player.getX() - getViewportX()) * cellSize;
+			int y = (player.getY() - getViewportY()) * cellSize;
+
+			player.drawCell(g, x, y, cellSize, cellSize);
 		}
 	}
 
 	public void zoom(int amount) {
 
-		int oldSize = cellSize;
-		cellSize -= amount * 2;
+		cellSize -= amount;
 
 		if (cellSize < 4) {
+			
 			cellSize = 4;
+			
 		} else if (cellSize > 100) {
+			
 			cellSize = 100;
 		}
-
-		// scale viewport size accordingly
-		double f = (double) oldSize / (double) cellSize;
-
-		if (f != 1.0) {
-
-			int oldViewportWidth = viewportWidth;
-			int oldViewportHeight = viewportHeight;
-
-			viewportWidth = (int) Math.rint((double) viewportWidth * f);
-			viewportHeight = (int) Math.rint((double) viewportHeight * f);
-
-			int offsetX = (int) Math.rint((double) (viewportWidth - oldViewportWidth) / 2.0);
-			int offsetY = (int) Math.rint((double) (viewportHeight - oldViewportHeight) / 2.0);
-
-			viewportX -= offsetX;
-			viewportY -= offsetY;
-			viewportX0 -= offsetX;
-			viewportY0 -= offsetY;
-		}
-
 	}
 
 	public void pan(int dx, int dy) {
 
-		viewportX += dx * (100.0 / (double) cellSize);
-		viewportY += dy * (100.0 / (double) cellSize);
-
-		if (viewportX < 0) {
-			viewportX = 0;
-		}
-		if (viewportY < 0) {
-			viewportY = 0;
-		}
-
-		if (viewportX + viewportWidth > width) {
-			viewportX = width - viewportWidth;
-		}
-		if (viewportY + viewportHeight > height) {
-			viewportY = height - viewportHeight;
-		}
-
+		player.move(dx, dy);
 	}
 
 	public int getCellSize() {
@@ -379,7 +350,7 @@ public class Environment {
 			}
 		}
 
-		Point localPos = new Point(pos.x + (viewportX * cellSize), pos.y + (viewportY * cellSize));
+		Point localPos = new Point(pos.x + (getViewportX() * cellSize), pos.y + (getViewportY() * cellSize));
 
 		for (int i = 0; i < width; i++) {
 			for (int j = 0; j < height; j++) {
@@ -673,5 +644,13 @@ public class Environment {
 
 	public void setShadowBrightness(int shadowBrightness) {
 		this.shadowBrightness = shadowBrightness;
+	}
+
+	public int getViewportX() {
+		return viewportX;
+	}
+
+	public int getViewportY() {
+		return viewportY;
 	}
 }

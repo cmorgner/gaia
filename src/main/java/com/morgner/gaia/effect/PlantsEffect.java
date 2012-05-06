@@ -19,10 +19,10 @@ public class PlantsEffect extends Effect {
 	}
 	
 	@Override
-	public Effect effect() {
+	public void effect() {
 		
-		if(!affectedResource.hasResource("moisture")) {
-			return null;
+		if(!affectedResource.hasResource("moisture") || !affectedResource.hasResource("moisture")) {
+			return;
 		}
 		
 		int neighboursWithPlants = affectedResource.getResource("humus") / 8;
@@ -53,7 +53,7 @@ public class PlantsEffect extends Effect {
 
 				affectedResource.addResource("deadPlants");
 
-				return null;
+				return;
 
 			} else {
 
@@ -83,8 +83,6 @@ public class PlantsEffect extends Effect {
 				}
 			}
 		}
-		
-		return null;
 	}
 	
 }

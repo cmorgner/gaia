@@ -16,7 +16,6 @@ public class Resource implements Entity {
 	private final Map<String, Integer> resources = new HashMap<String, Integer>();
 	private final List<Resource> directNeighbours = new LinkedList<Resource>();
 	private final List<Resource> allNeighbours = new LinkedList<Resource>();
-	private final List<Effect> effects = new ArrayList<Effect>(20);
 	
 	private static final Color A = new Color(0x70, 0x50, 0x30);
 	private static final Color B = new Color(0x75, 0x55, 0x35);
@@ -80,6 +79,7 @@ public class Resource implements Entity {
 	private Comparator<Resource> terrainHeightComparator = null;
 	private Environment env = null;
 	private boolean isSink = false;
+	private int iterations = 0;
 	private int normalX = 0;
 	private int normalY = 0;
 	private int terrain = 0;
@@ -174,7 +174,7 @@ public class Resource implements Entity {
 	}
 	
 	public void addResource(String name, int amount) {
-
+		
 		int resourceAmount = getResource(name);
 		resources.put(name, resourceAmount + amount);
 
@@ -210,7 +210,6 @@ public class Resource implements Entity {
 	public void drawCell(Graphics gr, int x, int y, int w, int h) {
 		
 		int plants   = getResource("plants");
-		int moisture = getResource("moisture");
 		int _water   = water + getResource("_water");
 
 		int ashes = getResource("ashes");
@@ -333,43 +332,28 @@ public class Resource implements Entity {
 	}
 	
 	private void draw(Graphics gr, int x, int y, int w, int h, Color color) {
-		
+
 		gr.setColor(new java.awt.Color(color.r, color.g, color.b, 255));
 		gr.fillRect(x, y, w, h);
 	}
 
-	/*
-	private void drawRound(Graphics gr, int x, int y, int w, int h, Color color) {
-		
-		int cellSize = env.getCellSize();
-		
-		gr.setColor(new java.awt.Color(color.r, color.g, color.b, 255));
-		gr.fillRoundRect(x, y, w, h, cellSize, cellSize);
-	}
-	*/
-	
 	@Override
-	public List<Effect> update(final long dt) {
+	public void update(Collection<Effect> effects, final long dt) {
 
-		effects.clear();
-		
-		if(getType() > 0) {
+		int treeLine = env.getTreeLine();
+		int humus = getResource("humus");
 
-			effects.add(new Effect(this) {
-
-				@Override
-				public Effect effect() {
-					affectedResource.addWater(env.getWaterSourceAmount());
-					return null;
-				}
-			});
+		if(type > 0) {
+			addWater(env.getWaterSourceAmount());
 		}
 
 		// add plants effect
-		int humus = getResource("humus");
-		if(getTerrain() < env.getTreeLine() && !hasWater() && humus > 0 && hasResource("moisture")) {
+		if(getTerrain() < treeLine && water == 0 && humus > 0 && hasResource("moisture")) {
+			
 			effects.add(new PlantsEffect(this));
+			
 		} else {
+			
 			setResource("plants", 0);
 		}
 
@@ -383,7 +367,7 @@ public class Resource implements Entity {
 		}
 
 		// simulate water
-		if(hasWater()) {
+		if(water > 0) {
 			
 			setResource("_water", env.getWaterTrail());
 			setResource("moisture", 255);
@@ -393,10 +377,8 @@ public class Resource implements Entity {
 
 				effects.add(new Effect(n) {
 
-					@Override public Effect effect() {
+					@Override public void effect() {
 
-						Effect e = null;
-						
 						int localTerrain = getTerrain();
 						int neighbourTerrain = affectedResource.getTerrain();
 
@@ -430,8 +412,6 @@ public class Resource implements Entity {
 
 										affectedResource.addWater(v+d);
 										addWater(-(v+d));
-
-										e = new ErosionEffect(affectedResource, v+d);
 									}
 									
 								} else if(localWater > neighbourWater) {
@@ -444,8 +424,6 @@ public class Resource implements Entity {
 
 										affectedResource.addWater(v);
 										addWater(-v);
-
-										e = new ErosionEffect(affectedResource, v);
 										
 									} else if(d > 4) {
 
@@ -454,48 +432,15 @@ public class Resource implements Entity {
 										affectedResource.addWater(v);
 										addWater(-v);
 
-										e = new ErosionEffect(affectedResource, v);
-
 									} else {
 
 										affectedResource.addWater(1);
 										addWater(-1);
-
-										e = new ErosionEffect(affectedResource, 1);
 									}
 								}
 								
 							}
 						}
-
-						localTerrain = getTerrain();
-						neighbourTerrain = affectedResource.getTerrain();
-
-						localWater = getWater();
-						neighbourWater = affectedResource.getWater();
-
-						combinedLocalHeight = localTerrain + localWater;
-						combinedNeighbourHeight = neighbourTerrain + neighbourWater;
-
-						if(combinedLocalHeight == combinedNeighbourHeight) {
-
-							// sedimentation if water level is the same
-							if(localTerrain > neighbourTerrain && localWater > 16) {
-
-								if(Gaia.rand.nextDouble() > 0.9) {
-									affectedResource.addTerrain(localWater / 16);
-								}
-
-							} else if(localTerrain < neighbourTerrain && neighbourWater > 16) {
-
-								if(Gaia.rand.nextDouble() > 0.9) {
-									addTerrain(neighbourWater / 16);
-								}
-
-							}
-						}
-						
-						return e;
 					}
 				});
 			}
@@ -507,49 +452,50 @@ public class Resource implements Entity {
 			
 		} else {
 
-			if(Gaia.rand.nextDouble() > 0.9) {
-				addResource("moisture", -1);
+			if(hasResource("moisture") || hasResource("_water")) {
+
+				env.activate(this);
+				
+				if(Gaia.rand.nextDouble() > 0.9) {
+
+					addResource("moisture", -1);
+				}
+
+				addResource("_water", -1);
 			}
-			
-			addResource("_water", -1);
 		}
 
-		/* disabled
-		effects.add(new Effect(this) {
-			@Override public Effect effect() {
+		// moisture effect randomly
+		if(Gaia.rand.nextDouble() > 0.95) {
 
-				int moisture = affectedResource.getResource("moisture");
-				boolean alive = affectedResource.getType() > 0;
-				int m = 0;
+			effects.add(new Effect(this) {
+				@Override public void effect() {
 
-				for(Resource n : affectedResource.getNeighbours()) {
-					
-					int nm = n.getResource("moisture");
-					if(n.higher(affectedResource, -32)) {
-						m += ((nm - moisture));
+					int moisture = affectedResource.getResource("moisture");
+					int m = 0;
+
+					for(Resource n : affectedResource.getNeighbours()) {
+
+						int nm = n.getResource("moisture");
+						if(n.higher(affectedResource, -32)) {
+							m += ((nm - moisture));
+						}
 					}
-					
-					alive |= Math.abs(nm) > 0;
-				}
 
-				int v = (m/8 + m%8);
-				
-				affectedResource.addResource("moisture", v);
+					int v = (m/8 + m%8);
 
-				if(!alive && v == 0 && moisture == 0) {
-					env.deactivate(affectedResource);
+					affectedResource.addResource("moisture", v);
 				}
-				
-				return null;
-			}
-		});
-		*/
-		
-				
+			});
+		}
+						
 		// continuous calculation of surface normals (spread calculation time)
 		env.calculateNormal(this);
+
+		if(type == 0 && !hasResource("_water") && !hasWater()) {
+			env.deactivate(this);
+		}
 		
-		return effects;
 	}
 	
 	@Override
@@ -596,6 +542,7 @@ public class Resource implements Entity {
 
 	public void setTerrain(int terrain) {
 		this.terrain = terrain;
+		env.activate(this);
 		if(terrain < 0) {
 			terrain = 0;
 		}
@@ -604,6 +551,7 @@ public class Resource implements Entity {
 	public void addTerrain(int amount) {
 		if(!isSink()) {
 			this.terrain += amount;
+			env.activate(this);
 		}
 	}
 

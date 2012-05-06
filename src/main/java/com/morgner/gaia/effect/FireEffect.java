@@ -19,7 +19,7 @@ public class FireEffect extends Effect{
 	}
 
 	@Override
-	public Effect effect() {
+	public void effect() {
 		
 		if(affectedResource.hasResource("fire")) {
 
@@ -43,7 +43,5 @@ public class FireEffect extends Effect{
 				affectedResource.setResource("fire", 0);
 			}
 		}
-		
-		return null;
 	}
 }

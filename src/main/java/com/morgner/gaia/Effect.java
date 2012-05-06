@@ -12,5 +12,5 @@ public abstract class Effect {
 		this.affectedResource = affectedResource;
 	}
 	
-	public abstract Effect effect();
+	public abstract void effect();
 }
