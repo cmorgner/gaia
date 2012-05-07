@@ -2,6 +2,7 @@ package com.morgner.gaia;
 
 import com.morgner.gaia.entity.Animal;
 import com.morgner.gaia.entity.Player;
+import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Point;
 import java.util.*;
@@ -26,6 +27,8 @@ public class Environment {
 	private int viewportY = 0;
 	private int viewportWidth = 0;
 	private int viewportHeight = 0;
+	private int panX = 0;
+	private int panY = 0;
 	private int initialCellSize = 0;
 	private int initialViewportWidth = 0;
 	private int initialViewportHeight = 0;
@@ -36,8 +39,8 @@ public class Environment {
 	private double terrainSmoothingConstant = 0.5;
 	
 	private int waterSourceAmount = 2;
-	private int waterSources = 5;
-	private int waterTrail = 0;
+	private int waterSources = 10;
+	private int waterTrail = 8;
 	private int seaLevel = 0;
 	private int seaWaterHeight = 10;
 	private double seaLevelFactor = 0.0;
@@ -258,25 +261,9 @@ public class Environment {
 
 		viewportWidth  = (int)Math.rint((double)initialViewportWidth * ((double)initialCellSize / (double)cellSize));
 		viewportHeight = (int)Math.rint((double)initialViewportHeight * ((double)initialCellSize / (double)cellSize));
-		
-		viewportX = (int)Math.rint(player.getScaledX() - ((double) viewportWidth / 2.0));
-		viewportY = (int)Math.rint(player.getScaledY() - ((double)viewportHeight / 2.0));
-		
-		if (getViewportX() < 0) {
-			viewportX = 0;
-		}
-		if (getViewportY() < 0) {
-			viewportY = 0;
-		}
 
-		if (getViewportX() + viewportWidth > width) {
-			viewportX = width - viewportWidth;
-		}
-		if (getViewportY() + viewportHeight > height) {
-			viewportY = height - viewportHeight;
-		}
-
-
+		checkViewport();
+				
 		for (int i = 0; i < viewportWidth + 3; i++) {
 			for (int j = 0; j < viewportHeight + 3; j++) {
 
@@ -299,12 +286,12 @@ public class Environment {
 		}
 
 		// draw player
-		{
-			int x = (player.getX() - getViewportX()) * cellSize;
-			int y = (player.getY() - getViewportY()) * cellSize;
-
-			player.drawCell(g, x, y, cellSize, cellSize);
-		}
+//		{
+//			int x = (player.getX() - getViewportX()) * cellSize;
+//			int y = (player.getY() - getViewportY()) * cellSize;
+//
+//			player.drawCell(g, x, y, cellSize, cellSize);
+//		}
 	}
 
 	public void zoom(int amount) {
@@ -319,11 +306,38 @@ public class Environment {
 			
 			cellSize = 100;
 		}
+
+		viewportWidth  = (int)Math.rint((double)initialViewportWidth * ((double)initialCellSize / (double)cellSize));
+		viewportHeight = (int)Math.rint((double)initialViewportHeight * ((double)initialCellSize / (double)cellSize));
+
+		viewportX = (int)Math.rint(player.getScaledX() - ((double) viewportWidth / 2.0));
+		viewportY = (int)Math.rint(player.getScaledY() - ((double)viewportHeight / 2.0));
+
+		checkViewport();
 	}
 
-	public void pan(int dx, int dy) {
+	public void moveViewport(int dx, int dy) {
+		player.translate(dx, dy);
+	}
 
-		player.move(dx, dy);
+	public void pan(int mx, int my) {
+
+		if(panX >= 0 && panY >= 0) {
+			
+			int dx = (panX - mx);
+			int dy = (panY - my);
+
+			viewportX += dx;
+			viewportY += dy;
+
+			checkViewport();
+
+			player.setPosition(viewportX + (viewportWidth / 2), viewportY + (viewportHeight / 2));
+		}
+	}
+
+	public void center(int dx, int dy) {
+		player.setPosition(dx, dy);
 	}
 
 	public int getCellSize() {
@@ -340,6 +354,19 @@ public class Environment {
 
 	public int getHeight() {
 		return height;
+	}
+	
+	public void checkViewport() {
+
+		if (viewportX + viewportWidth > width) {
+			viewportX = width - viewportWidth;
+		}
+		if (viewportY + viewportHeight > height) {
+			viewportY = height - viewportHeight;
+		}
+
+		if(viewportX < 0) viewportX = 0;
+		if(viewportY < 0) viewportY = 0;
 	}
 
 	public Entity findEntity(Point pos) {
@@ -652,5 +679,13 @@ public class Environment {
 
 	public int getViewportY() {
 		return viewportY;
+	}
+
+	public void setPanX(int panX) {
+		this.panX = panX;
+	}
+
+	public void setPanY(int panY) {
+		this.panY = panY;
 	}
 }

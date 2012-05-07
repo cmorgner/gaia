@@ -19,6 +19,7 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	public static final Random rand = new Random(2);
 	
 	private Dimension buttonDimension = new Dimension(160, 25);
+	private JToggleButton panButton = null;
 	private JToggleButton elevateButton = null;
 	private JToggleButton lowerButton = null;
 	private JToggleButton smoothButton = null;
@@ -42,8 +43,9 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	private int viewportHeight = 100;
 	private boolean smooth = false;
 	private boolean fire = false;
-	private int width = 513;	// must be a power of 2 plus 1 to support terrain generation algo.
-	private int height = 513;	// must be a power of 2 plus 1 to support terrain generation algo.
+	private boolean pan = false;
+	private int width = 257;	// must be a power of 2 plus 1 to support terrain generation algo.
+	private int height = 257;	// must be a power of 2 plus 1 to support terrain generation algo.
 	private int cellSize = 10;
 	private int level = -6;
 	private int keyMask = 0;
@@ -77,6 +79,7 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		ButtonGroup buttonGroup = new ButtonGroup();
 		
 		// toggle buttons
+		panButton = addToggleButton(controlsPanel, buttonGroup, "Pan");
 		lowerButton = addToggleButton(controlsPanel, buttonGroup, "Lower Terrain");
 		elevateButton = addToggleButton(controlsPanel, buttonGroup, "Elevate Terrain");
 		smoothButton = addToggleButton(controlsPanel, buttonGroup, "Smooth Terrain");
@@ -87,7 +90,7 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		controlsPanel.add(Box.createRigidArea(buttonDimension));
 		
 		// sliders
-		waterTrailSlider = addSlider(controlsPanel, "Water trail length", 0, 20, 0);
+		waterTrailSlider = addSlider(controlsPanel, "Water trail length", 0, 20, 8);
 		waterSourceAmountSlider = addSlider(controlsPanel, "Water source strength", 0, 50, 1);
 		plantsSlider = addSlider(controlsPanel, "Plant growth", 0, 6, 1);
 		inclinationBrightnessSlider = addSlider(controlsPanel, "Slope shadow brightness", 0, 800, 50);
@@ -195,7 +198,7 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		if((keyMask & DOWN)  == DOWN)   dy =  10;
 		
 		if(dx != 0 || dy != 0) {
-			environment.pan(dx, dy);
+			environment.moveViewport(dx, dy);
 		}
 
 		try {
@@ -285,6 +288,10 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	@Override
 	public void mouseClicked(MouseEvent e)
 	{
+		Entity ent = environment.findEntity(e.getPoint());
+		if(ent != null) {
+			environment.center(ent.getX(), ent.getY());
+		}
 	}
 
 	@Override
@@ -295,11 +302,19 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		}
 		
 		userInteraction();
+		
+		if(entity != null) {
+			environment.setPanX(entity.getX());
+			environment.setPanY(entity.getY());
+		}
 	}
 
 	@Override
 	public void mouseReleased(MouseEvent e) {
 		entity = null;
+		environment.setPanX(-1);
+		environment.setPanY(-1);
+		
 	}
 
 	@Override
@@ -316,7 +331,16 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	public void mouseDragged(MouseEvent e)
 	{
 		entity = environment.findEntity(e.getPoint());
-		userInteraction();
+
+		if(pan) {
+			if(entity != null) {
+				environment.pan(entity.getX(), entity.getY());
+			}
+			
+		} else {
+
+			userInteraction();
+		}
 	}
 
 	@Override
@@ -334,10 +358,13 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		
 		smooth = false;
 		fire = false;
+		pan = false;
 		level = 0;
 		water = 0;
 		
-		if(e.getSource().equals(lowerButton)) {
+		if(e.getSource().equals(panButton)) {
+			pan = true;
+		} else if(e.getSource().equals(lowerButton)) {
 			level = -8;
 		} else if(e.getSource().equals(elevateButton)) {
 			level = 8;

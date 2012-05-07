@@ -14,13 +14,9 @@ import com.morgner.gaia.Effect;
  */
 public class ErosionEffect extends Effect {
 
-	private int amount = 0;
-	
-	public ErosionEffect(Resource resource, int amount) {
+	public ErosionEffect(Resource resource) {
 		
 		super(resource);
-
-		this.amount = amount;
 	}
 	
 	@Override
@@ -37,20 +33,26 @@ public class ErosionEffect extends Effect {
 		if(affectedResource.hasResource("plants")) {
 			return;
 		}
+
+		int sedimentation = affectedResource.getResource("sedimentation");
+		int flow =          affectedResource.getResource("flow");
 		
 		// erosion
-		if(amount > 0) {
-
-			// erosion
-			if(Gaia.rand.nextDouble() > 0.99) {
-				affectedResource.addTerrain(-1);
-			}
-
-		} else {
+		if(sedimentation > 0) {
 
 			// sedimentation
 			if(Gaia.rand.nextDouble() > 0.99) {
 				affectedResource.addTerrain(1);
+			}
+
+		} else {
+			
+			if(flow > 10) {
+
+				// erosion
+				if(Gaia.rand.nextDouble() > 0.99) {
+					affectedResource.addTerrain(-1);
+				}
 			}
 		}
 	}

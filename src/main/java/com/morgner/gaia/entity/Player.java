@@ -5,10 +5,10 @@
 package com.morgner.gaia.entity;
 
 import com.morgner.gaia.*;
+import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Point;
 import java.util.Collection;
-import java.util.Collections;
 
 /**
  *
@@ -38,23 +38,21 @@ public class Player implements Entity {
 	@Override
 	public void drawCell(Graphics gr, int x, int y, int w, int h) {
 
-		/*
-		int r = (int)Math.rint((double)env.getCellSize() / cellSize);
-		int visualCellSize = env.getCellSize();
-		int viewportX = env.getViewportX();
-		int viewportY = env.getViewportY();
-		
-		int lx = (int)Math.rint(((localX / cellSize) - viewportX) * visualCellSize);
-		int ly = (int)Math.rint(((localY / cellSize) - viewportY) * visualCellSize);
-
-		gr.setColor(Color.WHITE);
-		gr.fillOval(lx, ly, r, r);
-
-		gr.setColor(Color.BLACK);
-		gr.drawOval(lx, ly, r, r);
-		gr.drawOval(lx + 1, ly + 1, r - 2, r - 2);
-		gr.drawOval(lx + 2, ly + 2, r - 4, r - 4);
-		*/
+//		int r = (int)Math.rint((double)env.getCellSize() / cellSize);
+//		int visualCellSize = env.getCellSize();
+//		int viewportX = env.getViewportX();
+//		int viewportY = env.getViewportY();
+//		
+//		int lx = (int)Math.rint(((localX / cellSize) - viewportX) * visualCellSize);
+//		int ly = (int)Math.rint(((localY / cellSize) - viewportY) * visualCellSize);
+//
+//		gr.setColor(Color.WHITE);
+//		gr.fillOval(lx, ly, r, r);
+//
+//		gr.setColor(Color.BLACK);
+//		gr.drawOval(lx, ly, r, r);
+//		gr.drawOval(lx + 1, ly + 1, r - 2, r - 2);
+//		gr.drawOval(lx + 2, ly + 2, r - 4, r - 4);
 		
 	}
 
@@ -101,7 +99,7 @@ public class Player implements Entity {
 		return localY / cellSize;
 	}
 	
-	public void move(double dx, double dy) {
+	public void translate(double dx, double dy) {
 		
 //		Resource pos = env.getResource(getX(), getY());
 //		Fx -= pos.getNormalX() * loadFactor;
@@ -110,6 +108,18 @@ public class Player implements Entity {
 //
 		localX += dx; // + (Fx / dt2);
 		localY += dy; // + (Fy / dt2); 
+		
+		if(localX < 0) localX = 0;
+		if(localY < 0) localY = 0;
+
+		if(localX > w*cellSize) localX = w*cellSize;
+		if(localY > h*cellSize) localY = h*cellSize;
+	}
+	
+	public void setPosition(double dx, double dy) {
+		
+		localX = dx * cellSize; // + (Fx / dt2);
+		localY = dy * cellSize; // + (Fy / dt2); 
 		
 		if(localX < 0) localX = 0;
 		if(localY < 0) localY = 0;

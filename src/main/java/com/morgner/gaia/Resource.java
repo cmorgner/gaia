@@ -181,6 +181,20 @@ public class Resource implements Entity {
 		env.activate(this);
 	}
 	
+	public void integrateResource(String destination, String source, int f, double factor) {
+		
+		int x = getResource(destination);
+		int x0 = getResource(source);
+
+		resources.put(source, x);
+
+		x += (int)Math.rint((double)(x - x0)) + ((double)f * factor);
+		
+		resources.put(destination, x);
+
+		env.activate(this);
+	}
+	
 	public int getResource(String name) {
 		
 		Integer resourceAmount = resources.get(name);
@@ -288,11 +302,11 @@ public class Resource implements Entity {
 
 		if(_water > 0) {
 
-			int b = 200 - (water / 4);
+			int b = 160 - (water / 4);
 			if(b <  64) b =  64;
 			if(b > 255) b = 255;
 
-			int a = 64 + (water * 2);
+			int a = 48 + (water * 2);
 			if(a <   0) a =   0;
 			if(a > 255) a = 255;
 
@@ -307,7 +321,19 @@ public class Resource implements Entity {
 
 			color = blend(color, new Color(0, g, 0, 32));
 		}
+		
+		int sedimentation = getResource("sedimentation");
+		if(sedimentation > 0) {
+			
+			color = blend(color, new Color(0, 255, 0, sedimentation));
+		}
 
+		int flow = getResource("flow");
+		if(flow > 10 && sedimentation == 0) {
+			
+			color = blend(color, new Color(255, 0, 0, flow));
+		}
+		
 		color = blend(color, getColorForHeight());
 		color = blend(color, getColorForHighlights());
 		color = blend(color, getColorForShadows());
@@ -412,6 +438,11 @@ public class Resource implements Entity {
 
 										affectedResource.addWater(v+d);
 										addWater(-(v+d));
+										
+										integrateResource("sedimentation", "_sedimentation", (v+d), 0.1);
+										integrateResource("flow", "_flow", (v+d), 0.9);
+
+										new ErosionEffect(Resource.this).effect();
 									}
 									
 								} else if(localWater > neighbourWater) {
@@ -431,7 +462,7 @@ public class Resource implements Entity {
 
 										affectedResource.addWater(v);
 										addWater(-v);
-
+										
 									} else {
 
 										affectedResource.addWater(1);
@@ -525,7 +556,7 @@ public class Resource implements Entity {
 		int px = p.x;
 		int py = p.y;
 		
-		return (px > x*r) && (px < (x+1)*r && (py > y*r) && (py < (y+1)*r));
+		return (px >= x*r) && (px < (x+1)*r && (py >= y*r) && (py < (y+1)*r));
 	}
 
 	public int getType() {
@@ -689,6 +720,18 @@ public class Resource implements Entity {
 			this.g = g;
 			this.b = b;
 			this.a = a;
+			
+			if(this.r <   0) this.r =   0;
+			if(this.r > 255) this.r = 255;
+	
+			if(this.g <   0) this.g =   0;
+			if(this.g > 255) this.g = 255;
+
+			if(this.b <   0) this.b =   0;
+			if(this.b > 255) this.b = 255;
+
+			if(this.a <   0) this.a =   0;
+			if(this.a > 255) this.a = 255;
 		}
 	}
 	
