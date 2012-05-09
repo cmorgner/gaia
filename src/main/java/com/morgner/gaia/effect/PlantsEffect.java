@@ -7,6 +7,7 @@ package com.morgner.gaia.effect;
 import com.morgner.gaia.Gaia;
 import com.morgner.gaia.Resource;
 import com.morgner.gaia.Effect;
+import com.morgner.gaia.Resource.Direction;
 
 /**
  *
@@ -21,20 +22,25 @@ public class PlantsEffect extends Effect {
 	@Override
 	public void effect() {
 		
-		if(!affectedResource.hasResource("moisture") || !affectedResource.hasResource("moisture")) {
+		if(!affectedResource.hasResource("moisture")) {
 			return;
 		}
 		
+		affectedResource.getEnvironment().activate(affectedResource);
+		
 		int neighboursWithPlants = affectedResource.getResource("humus") / 8;
-		int neighboursWithWater = 0;
+		int secondaryNeighboursWithWater = 0;
+		int directNeighboursWithWater = 0;
 
+		directNeighboursWithWater = affectedResource.getNeighbourWater(Direction.values());
+		secondaryNeighboursWithWater += affectedResource.getNeighbour(Direction.N).getNeighbourWater(Direction.NW, Direction.N, Direction.NE);
+		secondaryNeighboursWithWater += affectedResource.getNeighbour(Direction.E).getNeighbourWater(Direction.NE, Direction.E, Direction.SE);
+		secondaryNeighboursWithWater += affectedResource.getNeighbour(Direction.S).getNeighbourWater(Direction.SE, Direction.S, Direction.SW);
+		secondaryNeighboursWithWater += affectedResource.getNeighbour(Direction.W).getNeighbourWater(Direction.SW, Direction.W, Direction.NW);
+		
 		for(Resource n : affectedResource.getNeighbours()) {
 
-			if(n.hasWater()) {
-				neighboursWithWater++;
-			}
-
-			if(n.hasResource("plants")) { // && n.getTerrain() >= affectedResource.getTerrain() + 5) {
+			if(n.hasResource("plants")) {
 				neighboursWithPlants++;
 			}
 		}
@@ -62,7 +68,7 @@ public class PlantsEffect extends Effect {
 		}
 
 
-		if(neighboursWithWater == 4 || neighboursWithPlants >= 2) {
+		if(directNeighboursWithWater == 0 && (secondaryNeighboursWithWater == 4 || neighboursWithPlants >= 2)) {
 
 			int existingPlants = affectedResource.getResource("plants");
 
@@ -77,8 +83,12 @@ public class PlantsEffect extends Effect {
 					}
 
 					if(existingPlants < 25) {
-						affectedResource.addResource("moisture", -4);
+						affectedResource.addResource("moisture", -1);
 						affectedResource.addResource("plants", 1);
+						
+						for(Resource r : affectedResource.getNeighbours(true, false)) {
+							r.addResource("moisture");
+						}
 					}
 				}
 			}

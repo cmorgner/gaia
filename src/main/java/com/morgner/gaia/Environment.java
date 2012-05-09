@@ -29,6 +29,7 @@ public class Environment {
 	private int viewportHeight = 0;
 	private int panX = 0;
 	private int panY = 0;
+	private int iterations = 0;
 	private int initialCellSize = 0;
 	private int initialViewportWidth = 0;
 	private int initialViewportHeight = 0;
@@ -53,7 +54,8 @@ public class Environment {
 	private int shadowBrightness = 128;
 	private double treeLineFactor = 0.675;
 	
-	private double inclinationBrightnessFactor = 0.5;
+	private double inclinationBrightnessFactor = 1.2;
+	private double waterInterpolationFactor = 1.8;
 	
 	public Environment(int r, int width, int height, int viewportWidth, int viewportHeight) {
 
@@ -168,7 +170,7 @@ public class Environment {
 			for (int j = 0; j < height; j++) {
 
 				
-				resources[i][j].addTerrain(Gaia.rand.nextInt(9) - 4);
+				resources[i][j].addTerrain(Gaia.rand.nextInt(7) - 3);
 				int terrain = resources[i][j].getTerrain();
 
 				
@@ -255,6 +257,11 @@ public class Environment {
 		
 		pendingAdditionResources.clear();
 		pendingRemovalResources.clear();
+		
+		if(++iterations % 1000 == 0) {
+			System.out.println(activeResources.size() + " active resources");
+			iterations = 0;
+		}
 	}
 
 	public void draw(Graphics g) {
@@ -298,13 +305,13 @@ public class Environment {
 
 		cellSize -= amount;
 
-		if (cellSize < 4) {
+		if (cellSize < 2) {
 			
-			cellSize = 4;
+			cellSize = 2;
 			
-		} else if (cellSize > 100) {
+		} else if (cellSize > 40) {
 			
-			cellSize = 100;
+			cellSize = 40;
 		}
 
 		viewportWidth  = (int)Math.rint((double)initialViewportWidth * ((double)initialCellSize / (double)cellSize));
@@ -687,5 +694,13 @@ public class Environment {
 
 	public void setPanY(int panY) {
 		this.panY = panY;
+	}
+	
+	public void setWaterInterpolationFactor(double f) {
+		this.waterInterpolationFactor = f;
+	}
+	
+	public double getWaterInterpolationFactor() {
+		return waterInterpolationFactor;
 	}
 }

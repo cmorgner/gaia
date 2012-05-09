@@ -34,21 +34,11 @@ public class ErosionEffect extends Effect {
 			return;
 		}
 
-		int sedimentation = affectedResource.getResource("sedimentation");
-		int flow =          affectedResource.getResource("flow");
-		
-		// erosion
-		if(sedimentation > 0) {
+		int flow = affectedResource.getResource("flow");
+		if(flow > 0 ) {
 
-			// sedimentation
-			if(Gaia.rand.nextDouble() > 0.99) {
-				affectedResource.addTerrain(1);
-			}
-
-		} else {
-			
-			if(flow > 10) {
-
+			if(flow < 8) {
+				
 				// erosion
 				if(Gaia.rand.nextDouble() > 0.99) {
 					affectedResource.addTerrain(-1);

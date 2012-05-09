@@ -45,6 +45,10 @@ public class Resource implements Entity {
 	private static final int green1 = 0x000400;
 	private static final int green2 = 0x000800;
 	
+	public enum Direction {
+		N, E, S, W, NE, SE, SW, NW
+	}
+	
 	private static final Color[][] colorZones = new Color[][] {
 	
 		{ A, add(A, green1), add(A, green2) },
@@ -79,6 +83,14 @@ public class Resource implements Entity {
 	private Comparator<Resource> terrainHeightComparator = null;
 	private Environment env = null;
 	private boolean isSink = false;
+	private Resource bottom = null;
+	private Resource right = null;
+	private Resource left = null;
+	private Resource top = null;
+	private Resource bottomLeft = null;
+	private Resource bottomRight = null;
+	private Resource topLeft = null;
+	private Resource topRight = null;
 	private int iterations = 0;
 	private int normalX = 0;
 	private int normalY = 0;
@@ -111,32 +123,32 @@ public class Resource implements Entity {
 	
 	public void initialize() {
 		
-		Resource top = env.getResource(x, y-1);
+		top = env.getResource(x, y-1);
 		directNeighbours.add(top);
 		allNeighbours.add(top);
 
-		Resource left = env.getResource(x-1, y);
+		left = env.getResource(x-1, y);
 		directNeighbours.add(left);
 		allNeighbours.add(left);
 
-		Resource right = env.getResource(x+1, y);
+		right = env.getResource(x+1, y);
 		directNeighbours.add(right);
 		allNeighbours.add(right);
 
-		Resource bottom = env.getResource(x, y+1);
+		bottom = env.getResource(x, y+1);
 		directNeighbours.add(bottom);
 		allNeighbours.add(bottom);
 
-		Resource topLeft = env.getResource(x-1, y-1);
+		topLeft = env.getResource(x-1, y-1);
 		allNeighbours.add(topLeft);
 
-		Resource topRight = env.getResource(x+1, y-1);
+		topRight = env.getResource(x+1, y-1);
 		allNeighbours.add(topRight);
 
-		Resource bottomLeft = env.getResource(x-1, y+1);
+		bottomLeft = env.getResource(x-1, y+1);
 		allNeighbours.add(bottomLeft);
 
-		Resource bottomRight = env.getResource(x+1, y+1);
+		bottomRight = env.getResource(x+1, y+1);
 		allNeighbours.add(bottomRight);
 	}
 	
@@ -181,20 +193,6 @@ public class Resource implements Entity {
 		env.activate(this);
 	}
 	
-	public void integrateResource(String destination, String source, int f, double factor) {
-		
-		int x = getResource(destination);
-		int x0 = getResource(source);
-
-		resources.put(source, x);
-
-		x += (int)Math.rint((double)(x - x0)) + ((double)f * factor);
-		
-		resources.put(destination, x);
-
-		env.activate(this);
-	}
-	
 	public int getResource(String name) {
 		
 		Integer resourceAmount = resources.get(name);
@@ -220,131 +218,6 @@ public class Resource implements Entity {
 		return getResource(name) > 0;
 	}
 	
-	@Override
-	public void drawCell(Graphics gr, int x, int y, int w, int h) {
-		
-		int plants   = getResource("plants");
-		int _water   = water + getResource("_water");
-
-		int ashes = getResource("ashes");
-		int fire = getResource("fire");
-
-		Color color = getColorForTerrain();
-
-		if(fire > 0) {
-
-			int r = 0;
-			int g = 0;
-			int b = 0;
-
-			switch(Gaia.rand.nextInt(3)) {
-				case 0:
-					r = 255;
-					g = 128;
-					b = 0;
-					break;
-
-				case 1:
-					r = 255;
-					break;
-
-				case 2:
-
-					r = 255;
-					b = 224;
-					break;
-			}
-
-			color = blend(color, new Color(r, g, b, 255));
-		} 
-
-		if(ashes > 0) {
-
-			int r = 0;
-			int g = 0;
-			int b = 0;
-
-			switch(Gaia.rand.nextInt(3)) {
-				case 0:
-					r = 128;
-					g = 128;
-					b = 128;
-					break;
-
-				case 1:
-					r = 132;
-					g = 132;
-					b = 132;
-					break;
-
-				case 2:
-					r = 136;
-					g = 136;
-					b = 136;
-					break;
-			}
-
-
-			color = blend(color, new Color(r, g, b, 64));
-		}
-
-		/* disabled
-		if(moisture > 0) {
-
-			int v = moisture;
-			if(v <   0) v =  0;
-			if(v >  64) v = 64;
-
-			color = blend(color, new Color(0xff, 0xff, 0xff, v));
-		}
-		*/
-
-
-		if(_water > 0) {
-
-			int b = 160 - (water / 4);
-			if(b <  64) b =  64;
-			if(b > 255) b = 255;
-
-			int a = 48 + (water * 2);
-			if(a <   0) a =   0;
-			if(a > 255) a = 255;
-
-			color = blend(color, new Color(0, 0, b, a));
-		}
-
-		if(plants > 0) {
-
-			int g = (plants) + 200;
-			if(g <  64) g =  64;
-			if(g > 255) g = 255;
-
-			color = blend(color, new Color(0, g, 0, 32));
-		}
-		
-		int sedimentation = getResource("sedimentation");
-		if(sedimentation > 0) {
-			
-			color = blend(color, new Color(0, 255, 0, sedimentation));
-		}
-
-		int flow = getResource("flow");
-		if(flow > 10 && sedimentation == 0) {
-			
-			color = blend(color, new Color(255, 0, 0, flow));
-		}
-		
-		color = blend(color, getColorForHeight());
-		color = blend(color, getColorForHighlights());
-		color = blend(color, getColorForShadows());
-		
-		try {
-
-			draw(gr, x, y, w, h, color);
-			
-		} catch(Throwable t) {}
-	}
-	
 	private Color blend(Color dest, Color source) {
 
 		double alpha = (double)source.a / 255.0;
@@ -357,10 +230,184 @@ public class Resource implements Entity {
 		return new Color(r, g, b, 255);
 	}
 	
-	private void draw(Graphics gr, int x, int y, int w, int h, Color color) {
+	@Override
+	public void drawCell(Graphics gr, int x, int y, int w, int h) {
 
-		gr.setColor(new java.awt.Color(color.r, color.g, color.b, 255));
-		gr.fillRect(x, y, w, h);
+		int _water = this.water + getResource("_water");
+		int cellSize = env.getCellSize();
+		
+		Color hc = getColorForHighlights();
+		Color sc = getColorForShadows();
+		
+		if(cellSize > 6) {
+		
+//			double stepNum = Math.rint(Math.sqrt(cellSize));
+			double stepNum = Math.rint(cellSize / 4);
+			
+			double stepWidth  = ((double)w / stepNum);
+			double stepHeight = ((double)h / stepNum);
+			
+			for(int i=0; i<stepNum; i++) {
+				
+				for(int j=0; j<stepNum; j++) {
+					
+					int interpolatedHeight = getInterpolatedTerrain(stepNum, i, j);
+
+					Color color = getColorForTerrain(interpolatedHeight);
+
+					color = blend(color, getColorForWater(getInterpolatedWater(stepNum, i, j)));
+					color = blend(color, getColorForPlants(getInterpolatedResource("plants", stepNum, i, j)));
+					color = blend(color, getColorForHeight(interpolatedHeight));
+
+					// shadow calculation
+					{
+						int tl = getInterpolatedTerrain(stepNum, i-1, j);
+						int tr = getInterpolatedTerrain(stepNum, i+1, j);
+						int tt = getInterpolatedTerrain(stepNum, i, j-1) + top.getResource("plants");
+						int tb = getInterpolatedTerrain(stepNum, i, j+1);
+
+						int shadowX = tl - tr;
+						int shadowY = tt - tb;
+
+						int nx = -shadowX;
+						int ny = shadowY;
+						
+						int dark = nx+ny;
+						int light = -nx-ny;
+
+						color = blend(color, getColorForHighlights(light));
+						color = blend(color, getColorForShadows(dark));
+					}
+
+					// fire
+					color = blend(color, getColorForFire(getInterpolatedResource("fire", stepNum, i, j)));
+					
+					
+					gr.setColor(new java.awt.Color(color.r, color.g, color.b, 255));
+					
+					int fx = (int)Math.rint(x+(i*stepWidth));
+					int fy = (int)Math.rint(y+(j*stepHeight));
+					int fw = (int)Math.ceil(stepWidth);
+					int fh = (int)Math.ceil(stepHeight);
+					
+					gr.fillRect(fx, fy, fw, fh);
+				}
+			}
+			
+		} else {
+
+			Color color = getColorForTerrain();
+			
+			if(_water > 0) {
+				color = blend(color, getColorForWater(_water));
+			}
+					
+			if(hasResource("plants")) {
+				color = blend(color, getColorForPlants(getResource("plants")));
+			}
+			color = blend(color, getColorForHeight());
+			color = blend(color, hc);
+			color = blend(color, sc);
+
+			gr.setColor(new java.awt.Color(color.r, color.g, color.b, 255));
+			gr.fillRect(x, y, w, h);
+		}
+		
+//		gr.setColor(java.awt.Color.BLACK);
+//		gr.drawRect(x, y, w, h);
+	}
+	
+	private int getInterpolatedTerrain(double step, int i, int j) {
+		
+		int topValue         = top.getTerrain();
+		int rightValue       = right.getTerrain();
+		int bottomValue      = bottom.getTerrain();
+		int leftValue        = left.getTerrain();
+		int centerValue      = terrain;
+
+		double interpolationValue = env.getWaterInterpolationFactor();
+		
+		double deltaTop    = ((double)(centerValue - topValue   )) / (step*interpolationValue);
+		double deltaRight  = ((double)(centerValue - rightValue )) / (step*interpolationValue);
+		double deltaLeft   = ((double)(centerValue - leftValue  )) / (step*interpolationValue);
+		double deltaBottom = ((double)(centerValue - bottomValue)) / (step*interpolationValue);
+
+		double d = 0.0;
+		int s2 = step % 2 == 0 ? (int)Math.rint((step) / 2.0) : (int)Math.rint((step-1) / 2.0);
+
+		int leftI   = i < s2 ?  s2 - i : 0;
+		int topJ    = j < s2 ?  s2 - j : 0;
+		int rightI  = i > s2 ?  i - s2 : 0;
+		int bottomJ = j > s2 ?  j - s2 : 0;
+		
+		d -= (leftI   * deltaLeft);
+		d -= (topJ    * deltaTop);
+		d -= (rightI  * deltaRight);
+		d -= (bottomJ * deltaBottom);
+		
+		return (int)Math.rint(centerValue + d);
+	}
+	
+	private int getInterpolatedWater(double step, int i, int j) {
+		
+		int topValue         = top.getWater() + top.getResource("_water");
+		int rightValue       = right.getWater() + right.getResource("_water");
+		int bottomValue      = bottom.getWater() + bottom.getResource("_water");
+		int leftValue        = left.getWater() + left.getResource("_water");
+		int centerValue      = water + getResource("_water");
+
+		double interpolationValue = env.getWaterInterpolationFactor();
+		
+		double deltaTop    = ((double)(centerValue - topValue   )) / (step * interpolationValue);
+		double deltaRight  = ((double)(centerValue - rightValue )) / (step * interpolationValue);
+		double deltaLeft   = ((double)(centerValue - leftValue  )) / (step * interpolationValue);
+		double deltaBottom = ((double)(centerValue - bottomValue)) / (step * interpolationValue);
+
+		double d = 0.0;
+		int s2 = step % 2 == 0 ? (int)Math.rint((step) / 2.0) : (int)Math.rint((step-1) / 2.0);
+
+		double leftI   = i < s2 ?  s2 - i : 0;
+		double topJ    = j < s2 ?  s2 - j : 0;
+		double rightI  = i > s2 ?  i - s2 : 0;
+		double bottomJ = j > s2 ?  j - s2 : 0;
+		
+		d -= (leftI   * deltaLeft);
+		d -= (topJ    * deltaTop);
+		d -= (rightI  * deltaRight);
+		d -= (bottomJ * deltaBottom);
+		
+		return (int)Math.rint(centerValue + d);
+	}
+	
+	private int getInterpolatedResource(String name, double step, int i, int j) {
+
+		int topValue    = top.getResource(name);
+		int rightValue  = right.getResource(name);
+		int bottomValue = bottom.getResource(name);
+		int leftValue   = left.getResource(name);
+		int centerValue = getResource(name);
+
+		double interpolationValue = env.getWaterInterpolationFactor();
+		
+		double deltaTop    = ((double)(centerValue - topValue   )) / (step*interpolationValue);
+		double deltaRight  = ((double)(centerValue - rightValue )) / (step*interpolationValue);
+		double deltaLeft   = ((double)(centerValue - leftValue  )) / (step*interpolationValue);
+		double deltaBottom = ((double)(centerValue - bottomValue)) / (step*interpolationValue);
+
+		double d = 0.0;
+		int s2 = step % 2 == 0 ? (int)Math.rint((step) / 2.0) : (int)Math.rint((step-1) / 2.0);
+
+		int leftI   = i < s2 ?  s2 - i : 0;
+		int topJ    = j < s2 ?  s2 - j : 0;
+		int rightI  = i > s2 ?  i - s2 : 0;
+		int bottomJ = j > s2 ?  j - s2 : 0;
+		
+		d -= (leftI   * deltaLeft);
+		d -= (topJ    * deltaTop);
+		d -= (rightI  * deltaRight);
+		d -= (bottomJ * deltaBottom);
+
+		return (int)Math.rint(centerValue + d);
 	}
 
 	@Override
@@ -430,6 +477,7 @@ public class Resource implements Entity {
 								if(combinedLocalHeight > neighbourTerrain) {
 									
 									if(localWater > 0) {
+										
 										int dh = combinedLocalHeight - neighbourTerrain;
 										int amount = Math.min(dh, localWater);
 
@@ -439,8 +487,8 @@ public class Resource implements Entity {
 										affectedResource.addWater(v+d);
 										addWater(-(v+d));
 										
-										integrateResource("sedimentation", "_sedimentation", (v+d), 0.1);
-										integrateResource("flow", "_flow", (v+d), 0.9);
+										addResource("flow", -(v+d));
+										affectedResource.addResource("flow", (v+d));
 
 										new ErosionEffect(Resource.this).effect();
 									}
@@ -477,7 +525,7 @@ public class Resource implements Entity {
 			}
 
 			// evaporization
-			if(Gaia.rand.nextDouble() > (Math.pow(0.9, 1.0 / (double)getWater()))) {
+			if(Gaia.rand.nextDouble() > 0.99) {
 				addWater(-1);
 			}
 			
@@ -489,10 +537,14 @@ public class Resource implements Entity {
 				
 				if(Gaia.rand.nextDouble() > 0.9) {
 
-					addResource("moisture", -1);
+					if(hasResource("moisture")) {
+						addResource("moisture", -1);
+					}
 				}
 
-				addResource("_water", -1);
+				if(hasResource("_water")) {
+					addResource("_water", -1);
+				}
 			}
 		}
 
@@ -523,8 +575,17 @@ public class Resource implements Entity {
 		// continuous calculation of surface normals (spread calculation time)
 		env.calculateNormal(this);
 
-		if(type == 0 && !hasResource("_water") && !hasWater()) {
+		if(type == 0 && !hasResource("_water") && !hasWater() && !hasResource("plants")) {
 			env.deactivate(this);
+			
+			effects.add(new Effect(this) {
+				@Override public void effect() {
+					affectedResource.getEnvironment().calculateNormal(affectedResource);
+					for(Resource n : affectedResource.getNeighbours(false, false)) {
+						n.getEnvironment().calculateNormal(n);
+					}
+				}
+			});
 		}
 		
 	}
@@ -634,9 +695,83 @@ public class Resource implements Entity {
 		return (int)Math.rint((double)(-getNormalX()-getNormalY()) * 0.5);
 	}
 	
-	private Color getColorForTerrain() {
+	private Color getColorForWater(int water) {
+
+		if(water > 0) {
+			
+			int b = 180 - (water / 4);
+			if(b <  64) b =  64;
+			if(b > 255) b = 255;
+
+			int a = 32 + (water * 2);
+			if(a <   0) a =   0;
+			if(a > 255) a = 255;
+
+			return new Color(0, 0, b, a);
+		}
 		
-		double height = getTerrain();
+		return new Color(0, 0, 0, 0);
+	}
+	
+	private Color getColorForPlants(int plants) {
+
+		if(plants > 0) {
+
+			int g = 128 + (plants * 2);
+			if(g <  64) g =  64;
+			if(g > 255) g = 255;
+
+			int a = 128 + (plants * 2);
+			if(a <   0) a =   0;
+			if(a > 255) a = 255;
+
+			return new Color(0, a, 0, a);
+		}
+		
+		return new Color(0, 0, 0, 0);
+	}
+	
+	private Color getColorForFire(int fire) {
+
+		if(fire > 0) {
+
+			int r = 0;
+			int g = 0;
+			int b = 0;
+			
+			int a = 64 + (fire * 2);
+			if(a <   0) a =   0;
+			if(a > 255) a = 255;
+
+			switch(Gaia.rand.nextInt(3)) {
+				case 0:
+					r = 255;
+					g = 128;
+					b = 0;
+					break;
+
+				case 1:
+					r = 255;
+					break;
+
+				case 2:
+
+					r = 255;
+					b = 224;
+					break;
+			}
+
+			return new Color(r, g, b, a);
+		}
+		
+		return new Color(0, 0, 0, 0);
+	}
+	
+	private Color getColorForTerrain() {
+		return getColorForTerrain(getTerrain());
+	}
+	
+	private Color getColorForTerrain(int height) {
 
 		int h = (int)Math.rint(((double)height / (double)env.getMaxHeight()) * heightZoneCount) - 1;
 		int m = (int)Math.rint(((double)getResource("moisture") / (double)255.0) * moistZoneCount) - 1;		
@@ -646,8 +781,11 @@ public class Resource implements Entity {
 	}
 	
 	private Color getColorForHeight() {
+		return getColorForHeight(getTerrain());
+	}
+	
+	private Color getColorForHeight(int height) {
 		
-		int height = getTerrain();
 		int x = (int)Math.rint(((double)height / (double)env.getMaxHeight()) * 128.0) + 128;
 		if(x <   0) x =   0;
 		if(x > 255) x = 255;
@@ -656,20 +794,27 @@ public class Resource implements Entity {
 	}
 	
 	private Color getColorForShadows() {
-		
 		int dark = getNormalX()+getNormalY();
-		dark = (int)Math.rint((double)dark * env.getInclinationBrightnessFactor());
+		return getColorForShadows(dark);
+	}
+	
+	private Color getColorForShadows(int d) {
+		
+		int dark = (int)Math.rint((double)d * env.getInclinationBrightnessFactor());
 		if(dark <   0) dark =   0;
 		if(dark > 255) dark = 255;
 
 		return new Color(0, 0, 0, dark);
-		
 	}
 	
 	private Color getColorForHighlights() {
-		
 		int light = -getNormalX()-getNormalY();
-		light = (int)Math.rint((double)light * env.getInclinationBrightnessFactor() * 0.4);
+		return getColorForHighlights(light);
+	}
+	
+	private Color getColorForHighlights(int l) {
+		
+		int light = (int)Math.rint((double)l * env.getInclinationBrightnessFactor() * 0.4);
 		if(light <   0) light =   0;
 		if(light > 255) light = 255;
 
@@ -702,6 +847,60 @@ public class Resource implements Entity {
 
 	public void setNormalY(int normalY) {
 		this.normalY = normalY;
+	}
+	
+	public int getNeighbourResources(String name, Direction... which) {
+		
+		int sum = 0;
+		
+		for(Direction d : which) {
+			sum += getNeighbour(d).getResource(name);
+		}
+		
+		return sum;
+	}
+	
+	public int getNeighbourWater(Direction... which) {
+		
+		int sum = 0;
+		
+		for(Direction d : which) {
+			sum += getNeighbour(d).getWater();
+		}
+		
+		return sum;
+	}
+	
+	public Resource getNeighbour(Direction which) {
+		
+		switch(which) {
+			
+			case N:
+				return top;
+				
+			case E:
+				return right;
+				
+			case S:
+				return bottom;
+				
+			case W:
+				return left;
+				
+			case NE:
+				return topRight;
+				
+			case SE:
+				return bottomRight;
+				
+			case SW:
+				return bottomLeft;
+				
+			case NW:
+				return topLeft;
+		}
+
+		return null;
 	}
 	
 	private static class Color {
