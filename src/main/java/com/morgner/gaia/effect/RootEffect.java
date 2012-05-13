@@ -21,27 +21,27 @@ public class RootEffect extends Effect {
 	@Override
 	public void effect() {
 		
-		if(affectedResource.hasResource("deadPlants") && Gaia.rand.nextDouble() > 0.9) {
+		if(affectedResource.hasResource(Resource.DEAD_PLANTS) && Gaia.rand.nextDouble() > 0.9) {
 			
-			affectedResource.addResource("humus", 1);
-			affectedResource.addResource("deadPlants", -1);
+			affectedResource.addResource(Resource.HUMUS, 1);
+			affectedResource.addResource(Resource.DEAD_PLANTS, -1);
 		}
 		
 		// a large amount of humus transforms into a terrain height unit
-		if(affectedResource.getResource("humus") > 255) {
-			affectedResource.addResource("humus", -250);
-			affectedResource.addTerrain(1);
+		if(affectedResource.getResource(Resource.HUMUS) > 255) {
+			affectedResource.addResource(Resource.HUMUS, -250);
+			affectedResource.addResource(Resource.TERRAIN, 1);
 		}
 		
-		if(affectedResource.getTerrain() < affectedResource.getEnvironment().getSeaLevel()) {
+		if(affectedResource.getResource(Resource.TERRAIN) < affectedResource.getEnvironment().getSeaLevel()) {
 			
 			if(!affectedResource.isSink()) {
-				affectedResource.setTerrain(affectedResource.getEnvironment().getSeaLevel());
+				affectedResource.setResource(Resource.TERRAIN, affectedResource.getEnvironment().getSeaLevel());
 			}
 		}
 		
 		if(!affectedResource.isSink() && Gaia.rand.nextDouble() > 0.9) {
-			affectedResource.addTerrain(Gaia.rand.nextInt(3) - 1);
+			affectedResource.addResource(Resource.TERRAIN, Gaia.rand.nextInt(3) - 1);
 		}
 	}
 	

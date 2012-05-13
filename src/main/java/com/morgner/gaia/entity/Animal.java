@@ -9,11 +9,11 @@ import com.morgner.gaia.Entity;
 import com.morgner.gaia.Environment;
 import com.morgner.gaia.Gaia;
 import com.morgner.gaia.Resource;
+import com.morgner.gaia.util.FastMath;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Point;
 import java.util.Collection;
-import java.util.Collections;
 
 /**
  *
@@ -43,7 +43,7 @@ public class Animal implements Entity {
 	@Override
 	public void drawCell(Graphics gr, int x, int y, int w, int h) {
 		
-		int r = (int)Math.rint((double)env.getCellSize() / 5.0);
+		int r = FastMath.rint((double)env.getCellSize() / 5.0);
 		
 		int lx = x+(cellX*r);
 		int ly = y+(cellY*r);
@@ -59,22 +59,22 @@ public class Animal implements Entity {
 		double prob = 0.5;
 
 		// die in water
-		if(pos.hasWater()) {
+		if(pos.hasResource(Resource.WATER)) {
 			alive = false;
 			return;
 		}
 		
 		if(food < 10000) {
-			if(pos.hasResource("plants")) {
+			if(pos.hasResource(Resource.PLANTS)) {
 
 				food += 1;
-				pos.addResource("plants", -1);
+				pos.addResource(Resource.PLANTS, -1);
 				prob = 0.99;
 
-			} else if(pos.getResource("moisture") > 10) {
+			} else if(pos.getResource(Resource.MOISTURE) > 10) {
 
 				food += 1;
-				pos.addResource("moisture", -1);
+				pos.addResource(Resource.MOISTURE, -1);
 
 				prob = 0.9;
 			}
@@ -143,14 +143,14 @@ public class Animal implements Entity {
 			
 			case 0:	// up
 				Resource up = env.getResource(x, y-1);
-				if(!up.hasWater() && !(up.higher(pos, step) && Gaia.rand.nextDouble() > 0.9)) {
+				if(!up.hasResource(Resource.WATER) && !(up.higher(pos, step) && Gaia.rand.nextDouble() > 0.9)) {
 					cellY -= 1;
 					return;
 				}
 				
 			case 1:	// up right
 				Resource upRight = env.getResource(x+1, y-1);
-				if(!upRight.hasWater() && !(upRight.higher(pos, step) && Gaia.rand.nextDouble() > 0.9)) {
+				if(!upRight.hasResource(Resource.WATER) && !(upRight.higher(pos, step) && Gaia.rand.nextDouble() > 0.9)) {
 					cellX += 1;
 					cellY -= 1;
 					return;
@@ -158,14 +158,14 @@ public class Animal implements Entity {
 				
 			case 2:	// right
 				Resource right = env.getResource(x+1, y);
-				if(!right.hasWater() && !(right.higher(pos, step) && Gaia.rand.nextDouble() > 0.9)) {
+				if(!right.hasResource(Resource.WATER) && !(right.higher(pos, step) && Gaia.rand.nextDouble() > 0.9)) {
 					cellX += 1;
 					return;
 				}
 				
 			case 3:	// down right
 				Resource downRight = env.getResource(x+1, y+1);
-				if(!downRight.hasWater() && !(downRight.higher(pos, step) && Gaia.rand.nextDouble() > 0.9)) {
+				if(!downRight.hasResource(Resource.WATER) && !(downRight.higher(pos, step) && Gaia.rand.nextDouble() > 0.9)) {
 					cellX += 1;
 					cellY += 1;
 					return;
@@ -173,14 +173,14 @@ public class Animal implements Entity {
 				
 			case 4:	// down
 				Resource down = env.getResource(x, y+1);
-				if(!down.hasWater() && !(down.higher(pos, step) && Gaia.rand.nextDouble() > 0.9)) {
+				if(!down.hasResource(Resource.WATER) && !(down.higher(pos, step) && Gaia.rand.nextDouble() > 0.9)) {
 					cellY += 1;
 					return;
 				}
 				
 			case 5:	// down left
 				Resource downLeft = env.getResource(x-1, y+1);
-				if(!downLeft.hasWater() && !(downLeft.higher(pos, step) && Gaia.rand.nextDouble() > 0.9)) {
+				if(!downLeft.hasResource(Resource.WATER) && !(downLeft.higher(pos, step) && Gaia.rand.nextDouble() > 0.9)) {
 					cellX -= 1;
 					cellY += 1;
 					return;
@@ -188,14 +188,14 @@ public class Animal implements Entity {
 				
 			case 6:	// left
 				Resource left = env.getResource(x-1, y);
-				if(!left.hasWater() && !(left.higher(pos, step) && Gaia.rand.nextDouble() > 0.9)) {
+				if(!left.hasResource(Resource.WATER) && !(left.higher(pos, step) && Gaia.rand.nextDouble() > 0.9)) {
 					cellX -= 1;
 					return;
 				}
 				
 			case 7:	// up left
 				Resource upLeft = env.getResource(x-1, y-1);
-				if(!upLeft.hasWater() && !(upLeft.higher(pos, step) && Gaia.rand.nextDouble() > 0.9)) {
+				if(!upLeft.hasResource(Resource.WATER) && !(upLeft.higher(pos, step) && Gaia.rand.nextDouble() > 0.9)) {
 					cellX -= 1;
 					cellY -= 1;
 					return;
@@ -204,5 +204,9 @@ public class Animal implements Entity {
 			default:
 				break;
 		}
+	}
+
+	@Override
+	public void setHover(boolean hover) {
 	}
 }

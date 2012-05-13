@@ -8,6 +8,7 @@ import com.morgner.gaia.Gaia;
 import com.morgner.gaia.Resource;
 import com.morgner.gaia.Effect;
 import com.morgner.gaia.Resource.Direction;
+import com.morgner.gaia.util.FastMath;
 
 /**
  *
@@ -22,13 +23,13 @@ public class PlantsEffect extends Effect {
 	@Override
 	public void effect() {
 		
-		if(!affectedResource.hasResource("moisture")) {
+		if(!affectedResource.hasResource(Resource.MOISTURE)) {
 			return;
 		}
 		
 		affectedResource.getEnvironment().activate(affectedResource);
 		
-		int neighboursWithPlants = affectedResource.getResource("humus") / 8;
+		int neighboursWithPlants = affectedResource.getResource(Resource.HUMUS) / 8;
 		int secondaryNeighboursWithWater = 0;
 		int directNeighboursWithWater = 0;
 
@@ -40,54 +41,54 @@ public class PlantsEffect extends Effect {
 		
 		for(Resource n : affectedResource.getNeighbours()) {
 
-			if(n.hasResource("plants")) {
+			if(n.hasResource(Resource.PLANTS)) {
 				neighboursWithPlants++;
 			}
 		}
 
-		int plantsMaxAge = affectedResource.getResource("plantsMaxAge");
-		int plantsAge = affectedResource.getResource("plantsAge");
+		int plantsMaxAge = affectedResource.getResource(Resource.PLANTS_MAX_AGE);
+		int plantsAge = affectedResource.getResource(Resource.PLANTS_AGE);
 
 		// plants die after max age has been reached
 		if(plantsMaxAge > 0) {
 
 			if(plantsAge > plantsMaxAge) {
 
-				affectedResource.setResource("plantsMaxAge", 0);
-				affectedResource.setResource("plantsAge", 0);
-				affectedResource.setResource("plants", 0);
+				affectedResource.setResource(Resource.PLANTS_MAX_AGE, 0);
+				affectedResource.setResource(Resource.PLANTS_AGE, 0);
+				affectedResource.setResource(Resource.PLANTS, 0);
 
-				affectedResource.addResource("deadPlants");
+				affectedResource.addResource(Resource.DEAD_PLANTS);
 
 				return;
 
 			} else {
 
-				affectedResource.addResource("plantsAge");
+				affectedResource.addResource(Resource.PLANTS_AGE);
 			}
 		}
 
 
 		if(directNeighboursWithWater == 0 && (secondaryNeighboursWithWater == 4 || neighboursWithPlants >= 2)) {
 
-			int existingPlants = affectedResource.getResource("plants");
+			int existingPlants = affectedResource.getResource(Resource.PLANTS);
 
-			if(!affectedResource.hasResource("fire")) {
+			if(!affectedResource.hasResource(Resource.FIRE)) {
 
-				if(Gaia.rand.nextDouble() > Math.pow(0.999, (affectedResource.getSunExposure() + affectedResource.getEnvironment().getPlantsFactor()))) {
+				if(Gaia.rand.nextDouble() > FastMath.pow(0.999, (affectedResource.getSunExposure() + affectedResource.getEnvironment().getPlantsFactor()))) {
 
 					if(existingPlants == 0) {
 
 						// plant will be added, set randomized maximum age
-						affectedResource.setResource("plantsMaxAge", Gaia.rand.nextInt(1000));
+						affectedResource.setResource(Resource.PLANTS_MAX_AGE, Gaia.rand.nextInt(1000));
 					}
 
 					if(existingPlants < 25) {
-						affectedResource.addResource("moisture", -1);
-						affectedResource.addResource("plants", 1);
+						affectedResource.addResource(Resource.MOISTURE, -1);
+						affectedResource.addResource(Resource.PLANTS, 1);
 						
-						for(Resource r : affectedResource.getNeighbours(true, false)) {
-							r.addResource("moisture");
+						for(Resource r : affectedResource.getNeighbours(true)) {
+							r.addResource(Resource.MOISTURE);
 						}
 					}
 				}

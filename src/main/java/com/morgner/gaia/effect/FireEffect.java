@@ -21,26 +21,26 @@ public class FireEffect extends Effect{
 	@Override
 	public void effect() {
 		
-		if(affectedResource.hasResource("fire")) {
+		if(affectedResource.hasResource(Resource.FIRE)) {
 
-			if(affectedResource.hasResource("plants")) {
+			if(affectedResource.hasResource(Resource.PLANTS)) {
 
 				for(Resource n : affectedResource.getNeighbours()) {
 					
-					if(n.hasResource("plants") && Gaia.rand.nextDouble() > 0.75) {
-						n.setResource("fire", 1);
+					if(n.hasResource(Resource.PLANTS) && Gaia.rand.nextDouble() > 0.75) {
+						n.setResource(Resource.FIRE, 1);
 					}
 				}
 				
-				affectedResource.addResource("plants", -5);
+				affectedResource.addResource(Resource.PLANTS, -5);
 				
-				if(!affectedResource.hasResource("plants")) {
-					affectedResource.addResource("ashes", 1);
+				if(!affectedResource.hasResource(Resource.PLANTS)) {
+					affectedResource.addResource(Resource.ASH, 1);
 				}
 				
 			} else {
 				
-				affectedResource.setResource("fire", 0);
+				affectedResource.setResource(Resource.FIRE, 0);
 			}
 		}
 	}

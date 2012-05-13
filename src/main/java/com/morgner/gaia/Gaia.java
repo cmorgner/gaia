@@ -1,5 +1,6 @@
 package com.morgner.gaia;
 
+import com.morgner.gaia.util.FastMath;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
@@ -41,12 +42,12 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	
 	private Environment environment = null;
 	private int viewportWidth = 80;
-	private int viewportHeight = 60;
+	private int viewportHeight = 80;
 	private boolean smooth = false;
 	private boolean fire = false;
 	private boolean pan = false;
-	private int width = 257;	// must be a power of 2 plus 1 to support terrain generation algo.
-	private int height = 257;	// must be a power of 2 plus 1 to support terrain generation algo.
+	private int width = 129;	// must be a power of 2 plus 1 to support terrain generation algo.
+	private int height = 129;	// must be a power of 2 plus 1 to support terrain generation algo.
 	private int cellSize = 10;
 	private int level = -6;
 	private int keyMask = 0;
@@ -108,7 +109,8 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		canvas.addMouseMotionListener(this);
 		canvas.addMouseWheelListener(this);
 
-		canvas.createBufferStrategy(2);
+		canvas.createBufferStrategy(3);
+		canvas.initialize();
 		
 		running = true;
 
@@ -352,6 +354,17 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	@Override
 	public void mouseMoved(MouseEvent e)
 	{
+		if(environment.getCellSize() >= environment.getInteractionZoomLevel()) {
+
+			if(entity != null) {
+				entity.setHover(false);
+			}
+			
+			entity = environment.findEntity(e.getPoint());
+			if(entity != null) {
+				entity.setHover(true);
+			}			
+		}
 	}
 
 	@Override
@@ -377,7 +390,7 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		} else if(e.getSource().equals(smoothButton)) {
 			smooth = true;
 		} else if(e.getSource().equals(addWaterButton)) {
-			water = 1;
+			water = 20;
 		} else if(e.getSource().equals(removeWaterButton)) {
 			water = -255;
 		} else if(e.getSource().equals(addFireButton)) {
@@ -427,22 +440,22 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 				if(level != 0) {
 
 					lower(res, level);
-					
+					smooth(res, 0);
 				}
 				
 				if(water != 0) {
 					
-					res.addWater(water);
+					res.addResource(Resource.WATER, water);
 				}
 				
 				
 				if(fire) {
 					
-					res.setResource("fire", 1);
+					res.setResource(Resource.FIRE, 1);
 				}
 				
 				if(smooth) {
-					smooth(res,0 );
+					smooth(res, 0);
 				}
 			}
 			
@@ -458,29 +471,29 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 
 		Set<Resource> s = new LinkedHashSet<Resource>();
 		
-		for(Resource n1 : res.getNeighbours(false, false)) {
+		for(Resource n1 : res.getNeighbours(false)) {
 			
-			for(Resource n2 : n1.getNeighbours(false, false)) {
+			for(Resource n2 : n1.getNeighbours(false)) {
 				
-				for(Resource n3 : n2.getNeighbours(false, false)) {
+				for(Resource n3 : n2.getNeighbours(false)) {
 					
 					if(!s.contains(n3)) {
-						n3.addTerrain(level / 4);
+						n3.addResource(Resource.TERRAIN, (level / 4));
 					}
 					s.add(n3);
 				}
 				if(!s.contains(n2)) {
-					n2.addTerrain(level / 3);
+					n2.addResource(Resource.TERRAIN, (level / 3));
 				}
 				s.add(n2);
 			}
 			if(!s.contains(n1)) {
-				n1.addTerrain(level / 2);
+				n1.addResource(Resource.TERRAIN, (level / 2));
 			}
 			s.add(n1);
 		}
 
-		res.addTerrain(level);
+		res.addResource(Resource.TERRAIN, (level));
 	}
 	
 	private void smooth(final Resource res, int depth) {
@@ -489,16 +502,16 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 			return;
 		}
 
-		int t = res.getTerrain();
+		int t = res.getResource(Resource.TERRAIN);
 		int sum = 0;
 
 		for (Resource n1 : res.getNeighbours()) {
-			sum += n1.getTerrain() - t;
+			sum += n1.getResource(Resource.TERRAIN) - t;
 		}
 
-		res.addTerrain((int)Math.rint(((double) sum / 4.0) * 0.5));
+		res.addResource(Resource.TERRAIN, (FastMath.rint(((double) sum / 4.0) * 0.5)));
 		
-		for(Resource n : res.getNeighbours(false, false)) {
+		for(Resource n : res.getNeighbours(false)) {
 			smooth(n, depth+1);
 		}
 	}

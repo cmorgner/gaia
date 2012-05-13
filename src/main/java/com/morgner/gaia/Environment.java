@@ -2,7 +2,7 @@ package com.morgner.gaia;
 
 import com.morgner.gaia.entity.Animal;
 import com.morgner.gaia.entity.Player;
-import java.awt.Color;
+import com.morgner.gaia.util.FastMath;
 import java.awt.Graphics;
 import java.awt.Point;
 import java.util.*;
@@ -49,6 +49,8 @@ public class Environment {
 	private int minHeight = 0;
 	private int maxHeight = 1000;
 	private int treeLine = 0;
+	private int interactionZoomLevel = 40;
+	private int maxZoomLevel = 50;
 
 	private int plantsFactor = 1;
 	private int shadowBrightness = 128;
@@ -86,6 +88,8 @@ public class Environment {
 
 	public void initialize() {
 
+		long start = System.currentTimeMillis();
+		
 		List<Effect> effects = new LinkedList<Effect>();
 
 		try {
@@ -110,20 +114,20 @@ public class Environment {
 
 					Resource res = resources[i][j];
 
-					int t = res.getTerrain();
+					int t = res.getResource(Resource.TERRAIN);
 					int sum = 0;
 
 					for (Resource n1 : res.getNeighbours()) {
-						sum += n1.getTerrain() - t;
+						sum += n1.getResource(Resource.TERRAIN) - t;
 					}
 
-					final int val = (int) Math.rint(((double) sum / 4.0) * terrainSmoothingConstant);
+					final int val = (int) FastMath.rint(((double) sum / 4.0) * terrainSmoothingConstant);
 
 					effects.add(new Effect(res) {
 
 						@Override
 						public void effect() {
-							affectedResource.addTerrain(val);
+							affectedResource.addResource(Resource.TERRAIN, val);
 						}
 					});
 				}
@@ -140,7 +144,7 @@ public class Environment {
 		minHeight = 1000000;
 		for (int i = 0; i < width; i++) {
 			for (int j = 0; j < height; j++) {
-				int terrain = resources[i][j].getTerrain();
+				int terrain = resources[i][j].getResource(Resource.TERRAIN);
 				if (terrain < minHeight) {
 					minHeight = terrain;
 				}
@@ -154,7 +158,7 @@ public class Environment {
 		for (int i = 0; i < width; i++) {
 			for (int j = 0; j < height; j++) {
 
-				resources[i][j].addTerrain(-minHeight);
+				resources[i][j].addResource(Resource.TERRAIN, -minHeight);
 			}
 		}
 
@@ -162,26 +166,26 @@ public class Environment {
 		minHeight = 0;
 
 		// set tree line (max height of plant growth
-		treeLine = (int) Math.rint((double) maxHeight * treeLineFactor);
-		seaLevel = (int) Math.rint((double) maxHeight * seaLevelFactor);
+		treeLine = (int) FastMath.rint((double) maxHeight * treeLineFactor);
+		seaLevel = (int) FastMath.rint((double) maxHeight * seaLevelFactor);
 
 		// add sea level flag
 		for (int i = 0; i < width; i++) {
 			for (int j = 0; j < height; j++) {
 
 				
-				resources[i][j].addTerrain(Gaia.rand.nextInt(7) - 3);
-				int terrain = resources[i][j].getTerrain();
+				//resources[i][j].addResource(Resource.TERRAIN, Gaia.rand.nextInt(7) - 3);
+				int terrain = resources[i][j].getResource(Resource.TERRAIN);
 
 				
 				
 				if (terrain < treeLine && terrain >= seaLevel) {
-					resources[i][j].setResource("humus", 5);
+					resources[i][j].setResource(Resource.HUMUS, 5);
 				}
 
 				if (terrain <= seaLevel) {
 
-					resources[i][j].setWater(seaLevel - terrain);
+					resources[i][j].setResource(Resource.WATER, seaLevel - terrain);
 //					resources[i][j].setSink(true);
 				}
 			}
@@ -196,9 +200,9 @@ public class Environment {
 			while (tries++ < 10000) {
 				Resource res = getResource(Gaia.rand.nextInt(width), Gaia.rand.nextInt(height));
 				if (res != null) {
-					if (res.getTerrain() > minWaterSourceHeight) {
+					if (res.getResource(Resource.TERRAIN) > minWaterSourceHeight) {
 						res.setType(1);
-						res.addWater(2);
+						res.addResource(Resource.WATER, 2);
 						sources++;
 						break;
 					}
@@ -214,6 +218,8 @@ public class Environment {
 		for(int i=0; i<0; i++) {
 			entities.add(new Animal(this, Gaia.rand.nextInt(width), Gaia.rand.nextInt(height)));
 		}
+		
+		System.out.println((System.currentTimeMillis() - start) + " ms");
 	}
 
 	public Resource getResource(int x, int y) {
@@ -222,6 +228,8 @@ public class Environment {
 
 	public void update(long dt) {
 
+		long start = System.currentTimeMillis();
+		
 		// collect effects from environment
 		synchronized(activeResources) {
 			
@@ -258,24 +266,32 @@ public class Environment {
 		pendingAdditionResources.clear();
 		pendingRemovalResources.clear();
 		
-		if(++iterations % 1000 == 0) {
-			System.out.println(activeResources.size() + " active resources");
+		time += (System.currentTimeMillis() - start);
+		time /= 2;
+		
+		if(++iterations % 100 == 0) {
+			System.out.println(activeResources.size() + " active resources, " + time + " ms execution time");
 			iterations = 0;
 		}
 	}
+	
+	long time = 0;
 
 	public void draw(Graphics g) {
 
-		viewportWidth  = (int)Math.rint((double)initialViewportWidth * ((double)initialCellSize / (double)cellSize));
-		viewportHeight = (int)Math.rint((double)initialViewportHeight * ((double)initialCellSize / (double)cellSize));
+		viewportWidth  = FastMath.rint((double)initialViewportWidth * ((double)initialCellSize / (double)cellSize));
+		viewportHeight = FastMath.rint((double)initialViewportHeight * ((double)initialCellSize / (double)cellSize));
 
 		checkViewport();
+		
+		int vW = viewportWidth + 2;
+		int vH = viewportHeight + 2;
 				
-		for (int i = 0; i < viewportWidth + 3; i++) {
-			for (int j = 0; j < viewportHeight + 3; j++) {
+		for (int i = 0; i < vW; i++) {
+			for (int j = 0; j < vH; j++) {
 
-				int x = i + getViewportX();
-				int y = j + getViewportY();
+				int x = i + viewportX;
+				int y = j + viewportY;
 
 				if (x >= 0 && x < width && y >= 0 && y < height) {
 					resources[x][y].drawCell(g, i * cellSize, j * cellSize, cellSize, cellSize);
@@ -286,8 +302,8 @@ public class Environment {
 		// draw entities
 		for(Entity entity : entities) {
 			
-			int x = (entity.getX() - getViewportX()) * cellSize;
-			int y = (entity.getY() - getViewportY()) * cellSize;
+			int x = (entity.getX() - viewportX) * cellSize;
+			int y = (entity.getY() - viewportY) * cellSize;
 
 			entity.drawCell(g, x, y, cellSize, cellSize);
 		}
@@ -309,18 +325,20 @@ public class Environment {
 			
 			cellSize = 2;
 			
-		} else if (cellSize > 40) {
+		} else if (cellSize > maxZoomLevel) {
 			
-			cellSize = 40;
+			cellSize = maxZoomLevel;
 		}
 
-		viewportWidth  = (int)Math.rint((double)initialViewportWidth * ((double)initialCellSize / (double)cellSize));
-		viewportHeight = (int)Math.rint((double)initialViewportHeight * ((double)initialCellSize / (double)cellSize));
+		viewportWidth  = FastMath.rint((double)initialViewportWidth * ((double)initialCellSize / (double)cellSize));
+		viewportHeight = FastMath.rint((double)initialViewportHeight * ((double)initialCellSize / (double)cellSize));
 
-		viewportX = (int)Math.rint(player.getScaledX() - ((double) viewportWidth / 2.0));
-		viewportY = (int)Math.rint(player.getScaledY() - ((double)viewportHeight / 2.0));
+		viewportX = FastMath.rint(player.getScaledX() - ((double) viewportWidth / 2.0));
+		viewportY = FastMath.rint(player.getScaledY() - ((double)viewportHeight / 2.0));
 
 		checkViewport();
+		
+		System.out.println(cellSize);
 	}
 
 	public void moveViewport(int dx, int dy) {
@@ -386,11 +404,17 @@ public class Environment {
 
 		Point localPos = new Point(pos.x + (getViewportX() * cellSize), pos.y + (getViewportY() * cellSize));
 
-		for (int i = 0; i < width; i++) {
-			for (int j = 0; j < height; j++) {
+		int vW = viewportWidth;
+		int vH = viewportHeight;
+				
+		for (int i = 0; i < vW; i++) {
+			for (int j = 0; j < vH; j++) {
 
-				if (resources[i][j].contains(localPos)) {
-					return resources[i][j];
+				int x = i + viewportX;
+				int y = j + viewportY;
+
+				if (resources[x][y].contains(localPos)) {
+					return resources[x][y];
 				}
 			}
 		}
@@ -420,12 +444,12 @@ public class Environment {
 
 		int sum = 1;
 
-		sum += topLeft.getTerrain();
-		sum += topRight.getTerrain();
-		sum += bottomLeft.getTerrain();
-		sum += bottomRight.getTerrain();
+		sum += topLeft.getResource(Resource.TERRAIN);
+		sum += topRight.getResource(Resource.TERRAIN);
+		sum += bottomLeft.getResource(Resource.TERRAIN);
+		sum += bottomRight.getResource(Resource.TERRAIN);
 
-		sum = (int) Math.rint((double) sum / 4.0) + randomFactor(depth, iteration);
+		sum = (int) FastMath.rint((double) sum / 4.0) + randomFactor(depth, iteration);
 
 		return sum;
 	}
@@ -453,12 +477,12 @@ public class Environment {
 
 		int sum = 0;
 
-		sum += topLeft.getTerrain();
-		sum += topRight.getTerrain();
-		sum += bottomLeft.getTerrain();
-		sum += bottomRight.getTerrain();
+		sum += topLeft.getResource(Resource.TERRAIN);
+		sum += topRight.getResource(Resource.TERRAIN);
+		sum += bottomLeft.getResource(Resource.TERRAIN);
+		sum += bottomRight.getResource(Resource.TERRAIN);
 
-		sum = (int) Math.rint((double) sum / 4.0) + randomFactor(depth, iteration);
+		sum = (int) FastMath.rint((double) sum / 4.0) + randomFactor(depth, iteration);
 
 		return sum;
 	}
@@ -467,14 +491,14 @@ public class Environment {
 
 		int r2 = div2(radius);
 
-		getResource((x + r2), (y + r2)).setTerrain(averageDiamond(x, y, radius, depth, iteration));
+		getResource((x + r2), (y + r2)).setResource(Resource.TERRAIN, averageDiamond(x, y, radius, depth, iteration));
 	}
 
 	private void squareStep(int x, int y, int radius, int depth, int iteration) {
 
 		int r2 = div2(radius);
 
-		getResource((x + r2), (y)).setTerrain(averageSquare(x, y, radius, depth, iteration));
+		getResource((x + r2), (y)).setResource(Resource.TERRAIN, averageSquare(x, y, radius, depth, iteration));
 
 	}
 
@@ -543,12 +567,12 @@ public class Environment {
 	private int div2(int val) {
 
 		return val / 2;
-		//return (int)Math.rint((double)val / 2.0);
+		//return FastMath.rint((double)val / 2.0);
 	}
 
 	private int randomFactor(int depth, int iteration) {
 
-		int log = (int) Math.rint(Math.log(width) / Math.log(2.0)) + 1;
+		int log = (int) FastMath.rint(FastMath.log(width) / FastMath.log(2.0)) + 1;
 
 		int v = (terrainGenerationConstant * (terrainGenerationIterations - iteration)) * (log - depth);
 
@@ -652,10 +676,10 @@ public class Environment {
 		Resource top    = getResource(  x, y-1);
 		Resource bottom = getResource(  x, y+1);
 
-		int tl =   left.getTerrain();
-		int tr =  right.getTerrain();
-		int tt =    top.getTerrain() + (top.getResource("plants") * 4);
-		int tb = bottom.getTerrain();
+		int tl =   left.getResource(Resource.TERRAIN);
+		int tr =  right.getResource(Resource.TERRAIN);
+		int tt =    top.getResource(Resource.TERRAIN) + (top.getResource(Resource.PLANTS) * 4);
+		int tb = bottom.getResource(Resource.TERRAIN);
 
 		int sx = tl - tr;
 		int sy = tt - tb;
@@ -702,5 +726,13 @@ public class Environment {
 	
 	public double getWaterInterpolationFactor() {
 		return waterInterpolationFactor;
+	}
+
+	public int getMaxZoomLevel() {
+		return maxZoomLevel;
+	}
+
+	public int getInteractionZoomLevel() {
+		return interactionZoomLevel;
 	}
 }

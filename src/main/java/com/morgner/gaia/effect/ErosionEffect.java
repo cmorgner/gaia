@@ -30,18 +30,18 @@ public class ErosionEffect extends Effect {
 			return;
 		}
 		
-		if(affectedResource.hasResource("plants")) {
+		if(affectedResource.hasResource(Resource.PLANTS)) {
 			return;
 		}
 
-		int flow = affectedResource.getResource("flow");
+		int flow = affectedResource.getResource(Resource.FLOW);
 		if(flow > 0 ) {
 
 			if(flow < 8) {
 				
 				// erosion
 				if(Gaia.rand.nextDouble() > 0.99) {
-					affectedResource.addTerrain(-1);
+					affectedResource.addResource(Resource.TERRAIN, -1);
 				}
 			}
 		}

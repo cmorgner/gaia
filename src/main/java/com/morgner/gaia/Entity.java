@@ -17,4 +17,6 @@ public interface Entity {
 	public int getY();
 	public boolean contains(Point p);
 	public boolean isAlive();
+	
+	public void setHover(boolean hover);
 }

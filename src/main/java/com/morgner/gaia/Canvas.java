@@ -10,6 +10,7 @@ import java.awt.image.BufferStrategy;
  */
 public class Canvas extends java.awt.Canvas {
 
+	private BufferStrategy bufferStrategy = null;
 	private Environment env = null;
 	private int w = 0;
 	private int h = 0;
@@ -20,27 +21,19 @@ public class Canvas extends java.awt.Canvas {
 		this.h = getHeight();
 	}
 	
+	public void initialize() {
+		this.bufferStrategy = getBufferStrategy();
+	}
+	
 	public void paint()
 	{
-		BufferStrategy bs = this.getBufferStrategy();
-		Graphics2D g = (Graphics2D)bs.getDrawGraphics();
+		Graphics2D g = (Graphics2D)bufferStrategy.getDrawGraphics();
 	
-		/*
-		g.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_SPEED);
-		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
-		g.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_SPEED);
-		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
-		g.setRenderingHint(RenderingHints.KEY_DITHERING, RenderingHints.VALUE_DITHER_DISABLE);
-		g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
-		*/
-		
-		g.clearRect(0, 0, w, h);
-
 		// draw environment
 		env.draw(g);
 		
 		g.dispose();
 		
-		bs.show();
+		bufferStrategy.show();
 	}
 }

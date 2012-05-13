@@ -8,6 +8,7 @@ import com.morgner.gaia.Effect;
 import com.morgner.gaia.Entity;
 import com.morgner.gaia.Environment;
 import com.morgner.gaia.Resource;
+import com.morgner.gaia.util.FastMath;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Point;
@@ -49,13 +50,13 @@ public class Marble implements Entity {
 	@Override
 	public void drawCell(Graphics gr, int x, int y, int w, int h) {
 
-		int r = (int)Math.rint((double)env.getCellSize() / cellSize);
+		int r = FastMath.rint((double)env.getCellSize() / cellSize);
 		int visualCellSize = env.getCellSize();
 		int viewportX = env.getViewportX();
 		int viewportY = env.getViewportY();
 		
-		int lx = (int)Math.rint(((localX / cellSize) - viewportX) * visualCellSize);
-		int ly = (int)Math.rint(((localY / cellSize) - viewportY) * visualCellSize);
+		int lx = FastMath.rint(((localX / cellSize) - viewportX) * visualCellSize);
+		int ly = FastMath.rint(((localY / cellSize) - viewportY) * visualCellSize);
 
 		gr.setColor(Color.WHITE);
 		gr.fillOval(lx, ly, r, r);
@@ -100,12 +101,12 @@ public class Marble implements Entity {
 
 	@Override
 	public int getX() {
-		return (int)Math.rint(localX / cellSize);
+		return FastMath.rint(localX / cellSize);
 	}
 
 	@Override
 	public int getY() {
-		return (int)Math.rint(localY / cellSize);
+		return FastMath.rint(localY / cellSize);
 	}
 
 	public double getLocalX() {
@@ -131,4 +132,7 @@ public class Marble implements Entity {
 		return alive;
 	}
 	
+	@Override
+	public void setHover(boolean hover) {
+	}
 }
