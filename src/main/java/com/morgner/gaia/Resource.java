@@ -3,10 +3,13 @@ package com.morgner.gaia;
 import com.morgner.gaia.effect.ErosionEffect;
 import com.morgner.gaia.effect.FireEffect;
 import com.morgner.gaia.effect.PlantsEffect;
+import com.morgner.gaia.entity.Structure;
 import com.morgner.gaia.util.FastMath;
+import com.morgner.gaia.util.IntColor;
 import java.awt.*;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -26,8 +29,10 @@ public class Resource implements Entity {
 	public static final int MOISTURE        =  9;
 	public static final int DEAD_PLANTS     = 10;
 	public static final int HUMUS           = 11;
+	public static final int CURRENT         = 12;
+	public static final int VOLTAGE         = 13;
 	
-	public static final int RESOURCES = 12;
+	public static final int RESOURCES = 14;
 	
 	private final int[] resources = new int[RESOURCES];
 	
@@ -114,6 +119,7 @@ public class Resource implements Entity {
 	private static final int moistZoneCount  = colorZones[0].length;
 		
 	private Comparator<Resource> terrainHeightComparator = null;
+	private Structure structure = null;
 	private Environment env = null;
 	private boolean isSink = false;
 	private Resource bottom = null;
@@ -189,9 +195,22 @@ public class Resource implements Entity {
 	}
 	
 	public List<Resource> getNeighbours(boolean directOnly) {
+		return getNeighbours(directOnly, false);
+	}
+	
+	public List<Resource> getNeighbours(boolean directOnly, boolean shuffle) {
 
 		if(directOnly) {
+			
+			if(shuffle) {
+				Collections.shuffle(directNeighbours);
+			}
+			
 			return directNeighbours;
+		}
+		
+		if(shuffle) {
+			Collections.shuffle(allNeighbours);
 		}
 		
 		return allNeighbours;
@@ -231,18 +250,6 @@ public class Resource implements Entity {
 		return resources[name] > 0;
 	}
 	
-	private IntColor blend(IntColor dest, IntColor source) {
-
-		int alpha = source.a;
-		int neg   = 255 - alpha;
-		
-		int r = ((alpha * source.r) + (neg * dest.r)) / 255;
-		int g = ((alpha * source.g) + (neg * dest.g)) / 255;
-		int b = ((alpha * source.b) + (neg * dest.b)) / 255;
-		
-		return new IntColor(r, g, b, 255);
-	}
-	
 	@Override
 	public void drawCell(Graphics gr, int x, int y, int w, int h) {
 
@@ -263,15 +270,15 @@ public class Resource implements Entity {
 
 					IntColor color = getColorForTerrain(interpolatedHeight);
 
-					color = blend(color, getColorForWater(getInterpolatedWater(stepNum, i, j)));
-					color = blend(color, getColorForPlants(getInterpolatedResource(PLANTS, stepNum, i, j)));
-					color = blend(color, getColorForHeight(interpolatedHeight));
+					color = IntColor.blend(color, getColorForWater(getInterpolatedWater(stepNum, i, j)));
+					color = IntColor.blend(color, getColorForPlants(getInterpolatedResource(PLANTS, stepNum, i, j)));
+					color = IntColor.blend(color, getColorForHeight(interpolatedHeight));
 
 					// shadow calculation
 					{
 						int tl = getInterpolatedResource(Resource.TERRAIN, stepNum, i-1, j);
 						int tr = getInterpolatedResource(Resource.TERRAIN, stepNum, i+1, j);
-						int tt = getInterpolatedResource(Resource.TERRAIN, stepNum, i, j-1) + top.getResource(PLANTS);
+						int tt = getInterpolatedResource(Resource.TERRAIN, stepNum, i, j-1) + top.getResource(PLANTS)*2;
 						int tb = getInterpolatedResource(Resource.TERRAIN, stepNum, i, j+1);
 
 						int shadowX = tl - tr;
@@ -283,12 +290,12 @@ public class Resource implements Entity {
 						int dark = nx+ny;
 						int light = -nx-ny;
 
-						color = blend(color, getColorForHighlights(light));
-						color = blend(color, getColorForShadows(dark));
+						color = IntColor.blend(color, getColorForHighlights(light));
+						color = IntColor.blend(color, getColorForShadows(dark));
 					}
 
 					// fire
-					color = blend(color, getColorForFire(getInterpolatedResource(FIRE, stepNum, i, j)));
+					color = IntColor.blend(color, getColorForFire(getInterpolatedResource(FIRE, stepNum, i, j)));
 					
 					// increase gama for large zoom factors
 					double gamma = 1.0 + (cellSize / 80.0);
@@ -303,9 +310,13 @@ public class Resource implements Entity {
 					if(cellSize >= env.getInteractionZoomLevel()) {
 
 						if(hover) {
-							color = blend(color, new IntColor(64, 64, 64, 16));
+							color = IntColor.blend(color, new IntColor(64, 64, 64, 16));
 						}
 						
+					}
+					
+					if(structure != null) {
+						color = structure.getColor(color, stepNum, stepWidth, stepHeight, i, j);
 					}
 					
 					gr.setColor(new Color(color.r, color.g, color.b, 255));
@@ -314,7 +325,7 @@ public class Resource implements Entity {
 					// draw grid
 					if(cellSize >= env.getInteractionZoomLevel()) {
 
-						color = blend(color, new IntColor(64, 64, 64, 16));
+						color = IntColor.blend(color, new IntColor(0, 0, 0, 32));
 						gr.setColor(new Color(color.r, color.g, color.b, 255));
 
 						if(i == 0) gr.drawLine(fx, fy, fx, fy+fh);
@@ -328,17 +339,21 @@ public class Resource implements Entity {
 			IntColor color = getColorForTerrain();
 			
 			if(_water > 0) {
-				color = blend(color, getColorForWater(_water));
+				color = IntColor.blend(color, getColorForWater(_water));
 			}
 					
 			if(hasResource(PLANTS)) {
-				color = blend(color, getColorForPlants(getResource(PLANTS)));
+				color = IntColor.blend(color, getColorForPlants(getResource(PLANTS)));
 			}
 
-			color = blend(color, getColorForHeight());
-			color = blend(color, getColorForHighlights().scale(1.0, 1.0, 1.0, 0.25));
-			color = blend(color, getColorForShadows().scale(1.0, 1.0, 1.0, 0.25));
+			color = IntColor.blend(color, getColorForHeight());
+			color = IntColor.blend(color, getColorForHighlights().scale(1.0, 1.0, 1.0, 0.25));
+			color = IntColor.blend(color, getColorForShadows().scale(1.0, 1.0, 1.0, 0.25));
 
+			if(structure != null) {
+				color = structure.getColor(color, 1, 1, 1, 0, 0);
+			}
+					
 			gr.setColor(new Color(color.r, color.g, color.b, 255));
 			gr.fillRect(x, y, w, h);
 		}
@@ -352,12 +367,10 @@ public class Resource implements Entity {
 		int leftValue        = left.getResource(WATER) + left.getResource(WATER_TRAIL);
 		int centerValue      = getResource(WATER) + getResource(WATER_TRAIL);
 
-		double interpolationValue = env.getWaterInterpolationFactor();
-		
-		double deltaTop    = ((double)(centerValue - topValue   )) / (step * interpolationValue);
-		double deltaRight  = ((double)(centerValue - rightValue )) / (step * interpolationValue);
-		double deltaLeft   = ((double)(centerValue - leftValue  )) / (step * interpolationValue);
-		double deltaBottom = ((double)(centerValue - bottomValue)) / (step * interpolationValue);
+		double deltaTop    = ((double)(centerValue - topValue   )) / (step * 1.8);
+		double deltaRight  = ((double)(centerValue - rightValue )) / (step * 1.8);
+		double deltaLeft   = ((double)(centerValue - leftValue  )) / (step * 1.8);
+		double deltaBottom = ((double)(centerValue - bottomValue)) / (step * 1.8);
 
 		double d = 0.0;
 		int s2 = step % 2 == 0 ? FastMath.rint((step) / 2.0) : FastMath.rint((step-1) / 2.0);
@@ -383,12 +396,10 @@ public class Resource implements Entity {
 		int leftValue   = left.getResource(name);
 		int centerValue = getResource(name);
 
-		double interpolationValue = env.getWaterInterpolationFactor();
-		
-		double deltaTop    = ((double)(centerValue - topValue   )) / (step*interpolationValue);
-		double deltaRight  = ((double)(centerValue - rightValue )) / (step*interpolationValue);
-		double deltaLeft   = ((double)(centerValue - leftValue  )) / (step*interpolationValue);
-		double deltaBottom = ((double)(centerValue - bottomValue)) / (step*interpolationValue);
+		double deltaTop    = ((double)(centerValue - topValue   )) / (step*1.8);
+		double deltaRight  = ((double)(centerValue - rightValue )) / (step*1.8);
+		double deltaLeft   = ((double)(centerValue - leftValue  )) / (step*1.8);
+		double deltaBottom = ((double)(centerValue - bottomValue)) / (step*1.8);
 
 		double d = 0.0;
 		int s2 = step % 2 == 0 ? FastMath.rint((step) / 2.0) : FastMath.rint((step-1) / 2.0);
@@ -424,7 +435,9 @@ public class Resource implements Entity {
 			
 		} else {
 			
-			setResource(PLANTS, 0);
+			if(hasResource(PLANTS)) {
+				addResource(PLANTS, -1);
+			}
 		}
 
 		if(hasResource(PLANTS) || hasResource(FIRE)) {
@@ -455,8 +468,8 @@ public class Resource implements Entity {
 						int localWater = getResource(WATER);
 						int neighbourWater = affectedResource.getResource(WATER);
 
-						int combinedLocalHeight = localTerrain + localWater;
-						int combinedNeighbourHeight = neighbourTerrain + neighbourWater;
+						int combinedLocalHeight = localTerrain + localWater + getResource(PLANTS);
+						int combinedNeighbourHeight = neighbourTerrain + neighbourWater + affectedResource.getResource(PLANTS);
 
 						if(localTerrain == neighbourTerrain) {
 
@@ -569,6 +582,11 @@ public class Resource implements Entity {
 			});
 		}
 						
+		// update structure on this resource
+		if(structure != null) {
+			structure.update(effects, dt);
+		}
+		
 		// continuous calculation of surface normals (spread calculation time)
 		env.calculateNormal(this);
 
@@ -599,7 +617,7 @@ public class Resource implements Entity {
 
 	@Override
 	public boolean isAlive() {
-		return env.isActive(this);
+		return env.isActive(this) || hasStructure();
 	}
 	
 	public Environment getEnvironment() {
@@ -853,66 +871,18 @@ public class Resource implements Entity {
 	public void setHover(boolean hover) {
 		this.hover = hover;
 	}
-	
-	private static class IntColor {
-		
-		public int r = 0;
-		public int g = 0;
-		public int b = 0;
-		public int a = 0;
-		
-		public IntColor(int r, int g, int b) {
-			this(r, g, b, 255);
-		}
-		
-		public IntColor(int r, int g, int b, int a) {
-			this.r = r;
-			this.g = g;
-			this.b = b;
-			this.a = a;
-			
-			validate();
-		}
-		
-		public IntColor scale(double f) {
-			
-			this.r = FastMath.rint(r * f);
-			this.g = FastMath.rint(g * f);
-			this.b = FastMath.rint(b * f);
-			this.a = FastMath.rint(a * f);
-			
-			validate();
-			
-			return this;
-		}
-		
-		public IntColor scale(double fr, double fg, double fb, double fa) {
-			
-			this.r = FastMath.rint(r * fr);
-			this.g = FastMath.rint(g * fg);
-			this.b = FastMath.rint(b * fb);
-			this.a = FastMath.rint(a * fa);
-			
-			validate();
-			
-			return this;
-		}
-		
-		private void validate() {
-			
-			if(this.r <   0) this.r =   0;
-			if(this.r > 255) this.r = 255;
-	
-			if(this.g <   0) this.g =   0;
-			if(this.g > 255) this.g = 255;
 
-			if(this.b <   0) this.b =   0;
-			if(this.b > 255) this.b = 255;
+	public boolean hasStructure() {
+		return structure != null;
+	}
+	
+	public Structure getStructure() {
+		return structure;
+	}
 
-			if(this.a <   0) this.a =   0;
-			if(this.a > 255) this.a = 255;
-			
-		}
+	public void setStructure(Structure structure) {
+		this.structure = structure;
+		env.activate(this);
 	}
 	
 	private static IntColor add(IntColor color, int rgb) {

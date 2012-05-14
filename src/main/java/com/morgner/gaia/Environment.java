@@ -6,6 +6,7 @@ import com.morgner.gaia.util.FastMath;
 import java.awt.Graphics;
 import java.awt.Point;
 import java.util.*;
+import javax.swing.JLabel;
 
 /**
  *
@@ -33,6 +34,7 @@ public class Environment {
 	private int initialCellSize = 0;
 	private int initialViewportWidth = 0;
 	private int initialViewportHeight = 0;
+	private long averageUpdateTime = 0;
 	
 	private int terrainGenerationIterations = 50;
 	private int terrainGenerationConstant =	100;
@@ -56,7 +58,7 @@ public class Environment {
 	private int shadowBrightness = 128;
 	private double treeLineFactor = 0.675;
 	
-	private double inclinationBrightnessFactor = 1.2;
+	private double inclinationBrightnessFactor = 6.0;
 	private double waterInterpolationFactor = 1.8;
 	
 	public Environment(int r, int width, int height, int viewportWidth, int viewportHeight) {
@@ -86,12 +88,12 @@ public class Environment {
 		player = new Player(this, width * 2, height * 2);
 	}
 
-	public void initialize() {
+	public void initialize(JLabel statusBar) {
 
 		long start = System.currentTimeMillis();
 		
-		List<Effect> effects = new LinkedList<Effect>();
-
+		statusBar.setText("Generating terrain..");
+		
 		try {
 
 			// randomize terrain
@@ -106,6 +108,8 @@ public class Environment {
 			t.printStackTrace();
 		}
 
+		statusBar.setText("Smoothing terrain..");
+		
 		// smooth terrain
 		for (int a = 0; a < terrainSmoothingIterations; a++) {
 
@@ -191,6 +195,8 @@ public class Environment {
 			}
 		}
 
+		statusBar.setText("Adding water sources..");		
+		
 		// add water sources
 		int minWaterSourceHeight = treeLine;
 		int sources = 0;
@@ -212,6 +218,8 @@ public class Environment {
 			minWaterSourceHeight -= 1;
 		}
 
+		statusBar.setText("Calcuating initial terrain normals..");
+		
 		calculateNormals(true);
 		
 		// add animal
@@ -231,15 +239,15 @@ public class Environment {
 		long start = System.currentTimeMillis();
 		
 		// collect effects from environment
-		synchronized(activeResources) {
+		synchronized(getActiveResources()) {
 			
-			for (Resource res : activeResources) {
+			for (Resource res : getActiveResources()) {
 				res.update(effects, dt);
 			}
 		}
 
-		synchronized(activeResources) {
-			activeResources.removeAll(pendingRemovalResources);
+		synchronized(getActiveResources()) {
+			getActiveResources().removeAll(pendingRemovalResources);
 		}
 		
 		// collect effects from entities
@@ -259,23 +267,16 @@ public class Environment {
 		
 		effects.clear();
 
-		synchronized(activeResources) {
-			activeResources.addAll(pendingAdditionResources);
+		synchronized(getActiveResources()) {
+			getActiveResources().addAll(pendingAdditionResources);
 		}
 		
 		pendingAdditionResources.clear();
 		pendingRemovalResources.clear();
 		
-		time += (System.currentTimeMillis() - start);
-		time /= 2;
-		
-		if(++iterations % 100 == 0) {
-			System.out.println(activeResources.size() + " active resources, " + time + " ms execution time");
-			iterations = 0;
-		}
+		averageUpdateTime += (System.currentTimeMillis() - start);
+		averageUpdateTime /= 2;
 	}
-	
-	long time = 0;
 
 	public void draw(Graphics g) {
 
@@ -338,7 +339,7 @@ public class Environment {
 
 		checkViewport();
 		
-		System.out.println(cellSize);
+		// System.out.println(cellSize);
 	}
 
 	public void moveViewport(int dx, int dy) {
@@ -422,6 +423,10 @@ public class Environment {
 		return null;
 	}
 
+	public void addEntity(Entity entity) {
+		entities.add(entity);
+	}
+	
 	// terrain generation
 	private int averageDiamond(int x, int y, int radius, int depth, int iteration) {
 
@@ -607,7 +612,7 @@ public class Environment {
 	}
 
 	public boolean isActive(Resource res) {
-		return activeResources.contains(res);
+		return getActiveResources().contains(res) || res.hasStructure();
 	}
 	
 	public void activate(Resource res) {
@@ -617,7 +622,7 @@ public class Environment {
 	}
 
 	public void deactivate(Resource res) {
-		if (activeResources.contains(res)) {
+		if (getActiveResources().contains(res) && !res.hasStructure()) {
 			pendingRemovalResources.add(res);
 		}
 	}
@@ -734,5 +739,13 @@ public class Environment {
 
 	public int getInteractionZoomLevel() {
 		return interactionZoomLevel;
+	}
+
+	public long getAverageUpdateTime() {
+		return averageUpdateTime;
+	}
+
+	public Set<Resource> getActiveResources() {
+		return activeResources;
 	}
 }

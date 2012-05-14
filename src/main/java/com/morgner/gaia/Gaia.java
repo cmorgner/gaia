@@ -1,5 +1,7 @@
 package com.morgner.gaia;
 
+import com.morgner.gaia.entity.PowerPlant;
+import com.morgner.gaia.entity.Wire;
 import com.morgner.gaia.util.FastMath;
 import java.awt.*;
 import java.awt.event.*;
@@ -8,6 +10,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import javax.swing.*;
+import javax.swing.border.BevelBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -27,6 +30,8 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	private JToggleButton addWaterButton = null;
 	private JToggleButton removeWaterButton = null;
 	private JToggleButton addFireButton = null;
+	private JToggleButton wireButton = null;
+	private JToggleButton plantButton = null;
 	
 	private JSlider waterSourceAmountSlider = null;
 	private JSlider waterTrailSlider = null;
@@ -35,6 +40,9 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	private JSlider inclinationBrightnessSlider = null;
 	private JSlider waterInterpolationSlider = null;
 	
+	private JLabel statusBar = null;
+	
+	private StringBuffer statusBuffer = new StringBuffer(200);
 	private ScheduledExecutorService timer = null;
 	private boolean running = false;
 	private Canvas canvas = null;
@@ -45,9 +53,11 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	private int viewportHeight = 80;
 	private boolean smooth = false;
 	private boolean fire = false;
+	private boolean plant = false;
+	private boolean wire = false;
 	private boolean pan = false;
-	private int width = 129;	// must be a power of 2 plus 1 to support terrain generation algo.
-	private int height = 129;	// must be a power of 2 plus 1 to support terrain generation algo.
+	private int width = 128;	// must be a power of 2 plus 1 to support terrain generation algo.
+	private int height = 128;	// must be a power of 2 plus 1 to support terrain generation algo.
 	private int cellSize = 10;
 	private int level = -6;
 	private int keyMask = 0;
@@ -88,6 +98,8 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		addWaterButton = addToggleButton(controlsPanel, buttonGroup, "Add Water");
 		removeWaterButton = addToggleButton(controlsPanel, buttonGroup, "Remove Water");
 		addFireButton = addToggleButton(controlsPanel, buttonGroup, "Set Fire");
+		plantButton = addToggleButton(controlsPanel, buttonGroup, "Power Plant");
+		wireButton = addToggleButton(controlsPanel, buttonGroup, "Wire");
 		
 		controlsPanel.add(Box.createRigidArea(buttonDimension));
 		
@@ -95,12 +107,16 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		waterTrailSlider = addSlider(controlsPanel, "Water trail length", 0, 20, 8);
 		waterSourceAmountSlider = addSlider(controlsPanel, "Water source strength", 0, 50, 1);
 		plantsSlider = addSlider(controlsPanel, "Plant growth", 0, 6, 1);
-		inclinationBrightnessSlider = addSlider(controlsPanel, "Slope shadow brightness", 0, 800, 120);
+		inclinationBrightnessSlider = addSlider(controlsPanel, "Slope shadow brightness", 0, 800, 600);
 		waterInterpolationSlider = addSlider(controlsPanel, "Water interpolation factor", 0, 1000, 180);
+		
+		statusBar = new JLabel("Welcome to Gaia");
+		statusBar.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
 		
 		getContentPane().setLayout(new BorderLayout());
 		getContentPane().add(canvas, BorderLayout.CENTER);
 		getContentPane().add(controlsPanel, BorderLayout.EAST);
+		getContentPane().add(statusBar, BorderLayout.SOUTH);
 		
 		pack();
 
@@ -118,7 +134,7 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		timer.schedule(new Runnable() {
 			@Override public void run() {
 				
-				environment.initialize();
+				environment.initialize(statusBar);
 
 				// when initialization is finished, start update thread
 				timer.schedule(new Runnable() {
@@ -209,14 +225,7 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 			environment.moveViewport(dx, dy);
 		}
 
-		try {
-			canvas.paint();
-			
-		} catch(Throwable t) {
-			
-			t.printStackTrace();
-			running = false;
-		}
+		try { canvas.paint(); } catch(Throwable t) { t.printStackTrace(); }
 
 		if(running) {
 			
@@ -244,7 +253,14 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 				
 			} catch(Throwable t) {t.printStackTrace();}
 		}
+		
+		statusBuffer.append(environment.getActiveResources().size());
+		statusBuffer.append(" active resources, ");
+		statusBuffer.append(environment.getAverageUpdateTime());
+		statusBuffer.append(" ms update time");
 				
+		statusBar.setText(statusBuffer.toString());
+		statusBuffer.setLength(0);
 	}
 	
 	@Override
@@ -376,7 +392,9 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	public void actionPerformed(ActionEvent e) {
 		
 		smooth = false;
+		plant = false;
 		fire = false;
+		wire = false;
 		pan = false;
 		level = 0;
 		water = 0;
@@ -395,6 +413,10 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 			water = -255;
 		} else if(e.getSource().equals(addFireButton)) {
 			fire = true;
+		} else if(e.getSource().equals(wireButton)) {
+			wire = true;
+		} else if(e.getSource().equals(plantButton)) {
+			plant = true;
 		}
 	}
 
@@ -440,12 +462,14 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 				if(level != 0) {
 
 					lower(res, level);
-					smooth(res, 0);
 				}
 				
 				if(water != 0) {
 					
 					res.addResource(Resource.WATER, water);
+					if(res.getResource(Resource.WATER) < 0) {
+						res.setResource(Resource.WATER, 0);
+					}
 				}
 				
 				
@@ -456,6 +480,14 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 				
 				if(smooth) {
 					smooth(res, 0);
+				}
+				
+				if(wire) {
+					res.setStructure(new Wire(res));
+				}
+				
+				if(plant) {
+					res.setStructure(new PowerPlant(res));
 				}
 			}
 			

@@ -41,7 +41,15 @@ public class ErosionEffect extends Effect {
 				
 				// erosion
 				if(Gaia.rand.nextDouble() > 0.99) {
+					
 					affectedResource.addResource(Resource.TERRAIN, -1);
+					
+					for(Resource n : affectedResource.getNeighbours(false, true)) {
+						
+						if(n.getResource(Resource.TERRAIN) - affectedResource.getResource(Resource.TERRAIN) >= 2 && Gaia.rand.nextDouble() > 0.99) {
+							n.addResource(Resource.TERRAIN, -1);
+						}
+					}
 				}
 			}
 		}

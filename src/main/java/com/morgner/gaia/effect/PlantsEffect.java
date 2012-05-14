@@ -69,13 +69,13 @@ public class PlantsEffect extends Effect {
 		}
 
 
-		if(directNeighboursWithWater == 0 && (secondaryNeighboursWithWater == 4 || neighboursWithPlants >= 2)) {
+		if(directNeighboursWithWater == 0 && (secondaryNeighboursWithWater >= 4 || neighboursWithPlants >= 2)) {
 
 			int existingPlants = affectedResource.getResource(Resource.PLANTS);
 
 			if(!affectedResource.hasResource(Resource.FIRE)) {
 
-				if(Gaia.rand.nextDouble() > FastMath.pow(0.999, (affectedResource.getSunExposure() + affectedResource.getEnvironment().getPlantsFactor()))) {
+				if(Gaia.rand.nextDouble() > FastMath.pow(0.99, affectedResource.getEnvironment().getPlantsFactor())) {
 
 					if(existingPlants == 0) {
 
@@ -83,7 +83,7 @@ public class PlantsEffect extends Effect {
 						affectedResource.setResource(Resource.PLANTS_MAX_AGE, Gaia.rand.nextInt(1000));
 					}
 
-					if(existingPlants < 25) {
+					if(existingPlants < 25 && !affectedResource.hasResource(Resource.WATER)) {
 						affectedResource.addResource(Resource.MOISTURE, -1);
 						affectedResource.addResource(Resource.PLANTS, 1);
 						
