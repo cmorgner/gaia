@@ -16,9 +16,6 @@ import java.util.Collection;
  */
 public class Wire extends Structure {
 
-	private static final double RHO_CU = 17.8e-3;				// resistivity of copper
-	private static final double WIRE_RESISTANCE = RHO_CU * (1.0 / 1.0);	// length / area
-	
 	public Wire(Resource resource) {
 		super(resource, resource.getX(), resource.getY());
 	}
@@ -78,14 +75,25 @@ public class Wire extends Structure {
 	@Override
 	public void update(Collection<Effect> effects, final long dt) {
 		
-		int max = resource.getResource(Resource.CURRENT);
+		double resistanceDependentTransmissionFactor = 0.95 - ((double)resource.getResource(Resource.RESISTANCE) / 1000.0);
+		
+		updateResource(effects, Resource.CURRENT, resistanceDependentTransmissionFactor);
+		
+		// resistance is the same as current, but with reversed sign
+		// and origin in current-consuming entities.
+		updateResource(effects, Resource.RESISTANCE, 0.95);
+	}
+	
+	private void updateResource(Collection<Effect> effects, final int resourceId, double transmissionFactor) {
+		
+		int max = resource.getResource(resourceId);
 		double count = 1;
 		
 		for(Resource n : resource.getNeighbours(true)) {
 		
 			if(n.hasStructure() && n.getStructure() instanceof Wire) {
 				
-				int current = n.getResource(Resource.CURRENT);
+				int current = n.getResource(resourceId);
 				if(current > max) {
 					max = current;
 				} else {
@@ -94,11 +102,11 @@ public class Wire extends Structure {
 			}
 		}
 		
-		final int val = FastMath.rint((double)max * FastMath.pow(0.9, count));
+		final int val = FastMath.rint((double)max * FastMath.pow(transmissionFactor, count));
 		
 		effects.add(new Effect(resource) {
 			@Override public void effect() {
-				affectedResource.setResource(Resource.CURRENT, val);
+				affectedResource.setResource(resourceId, val);
 			}
 		});
 		

@@ -1,6 +1,9 @@
 package com.morgner.gaia;
 
+import com.morgner.gaia.entity.HydroPlant;
 import com.morgner.gaia.entity.PowerPlant;
+import com.morgner.gaia.entity.Structure;
+import com.morgner.gaia.entity.WaterPump;
 import com.morgner.gaia.entity.Wire;
 import com.morgner.gaia.util.FastMath;
 import java.awt.*;
@@ -11,14 +14,12 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import javax.swing.*;
 import javax.swing.border.BevelBorder;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 
 /**
  *
  * @author Christian Morgner
  */
-public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMotionListener, MouseWheelListener, ActionListener, ChangeListener {
+public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMotionListener, MouseWheelListener, ActionListener {
 	
 	public static final Random rand = new Random(2);
 	
@@ -30,15 +31,8 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	private JToggleButton addWaterButton = null;
 	private JToggleButton removeWaterButton = null;
 	private JToggleButton addFireButton = null;
-	private JToggleButton wireButton = null;
-	private JToggleButton plantButton = null;
-	
-	private JSlider waterSourceAmountSlider = null;
-	private JSlider waterTrailSlider = null;
-	private JSlider plantsSlider = null;
-	private JSlider shadowBrightnessSlider = null;
-	private JSlider inclinationBrightnessSlider = null;
-	private JSlider waterInterpolationSlider = null;
+	private JToggleButton structureButton = null;
+	private JComboBox structureSelector = null;
 	
 	private JLabel statusBar = null;
 	
@@ -54,7 +48,8 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	private boolean smooth = false;
 	private boolean fire = false;
 	private boolean plant = false;
-	private boolean wire = false;
+	private boolean pump = false;
+	private boolean structure = false;
 	private boolean pan = false;
 	private int width = 128;	// must be a power of 2 plus 1 to support terrain generation algo.
 	private int height = 128;	// must be a power of 2 plus 1 to support terrain generation algo.
@@ -98,17 +93,20 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		addWaterButton = addToggleButton(controlsPanel, buttonGroup, "Add Water");
 		removeWaterButton = addToggleButton(controlsPanel, buttonGroup, "Remove Water");
 		addFireButton = addToggleButton(controlsPanel, buttonGroup, "Set Fire");
-		plantButton = addToggleButton(controlsPanel, buttonGroup, "Power Plant");
-		wireButton = addToggleButton(controlsPanel, buttonGroup, "Wire");
+		structureButton = addToggleButton(controlsPanel, buttonGroup, "Add structure");
+		
+		structureSelector = new JComboBox();
+		structureSelector.setPreferredSize(buttonDimension);
+		structureSelector.setEditable(false);
+		
+		structureSelector.addItem(new StructureTemplate("Remove Structure",          null));
+		structureSelector.addItem(new StructureTemplate("Wire",                      Wire.class));
+		structureSelector.addItem(new StructureTemplate("Hydroelectric Power Plant", HydroPlant.class));
+		structureSelector.addItem(new StructureTemplate("Water Pump",                WaterPump.class));
+		
+		controlsPanel.add(structureSelector);
 		
 		controlsPanel.add(Box.createRigidArea(buttonDimension));
-		
-		// sliders
-		waterTrailSlider = addSlider(controlsPanel, "Water trail length", 0, 20, 8);
-		waterSourceAmountSlider = addSlider(controlsPanel, "Water source strength", 0, 50, 1);
-		plantsSlider = addSlider(controlsPanel, "Plant growth", 0, 6, 1);
-		inclinationBrightnessSlider = addSlider(controlsPanel, "Slope shadow brightness", 0, 800, 600);
-		waterInterpolationSlider = addSlider(controlsPanel, "Water interpolation factor", 0, 1000, 180);
 		
 		statusBar = new JLabel("Welcome to Gaia");
 		statusBar.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
@@ -153,17 +151,6 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		}, gt, TimeUnit.MILLISECONDS);
 	}
 
-	private JSlider addSlider(JPanel controlsPanel, String label, int min, int max, int value) {
-		
-		JSlider slider = new JSlider(min, max, value);
-		slider.setPreferredSize(buttonDimension);
-		slider.addChangeListener(this);
-		controlsPanel.add(new JLabel(label));
-		controlsPanel.add(slider);
-
-		return slider;
-	}
-	
 	private JToggleButton addToggleButton(JPanel controlsPanel, ButtonGroup buttonGroup, String label) {
 		
 		JToggleButton button = new JToggleButton(label);
@@ -391,10 +378,9 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		
+		structure = false;
 		smooth = false;
-		plant = false;
 		fire = false;
-		wire = false;
 		pan = false;
 		level = 0;
 		water = 0;
@@ -413,41 +399,8 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 			water = -255;
 		} else if(e.getSource().equals(addFireButton)) {
 			fire = true;
-		} else if(e.getSource().equals(wireButton)) {
-			wire = true;
-		} else if(e.getSource().equals(plantButton)) {
-			plant = true;
-		}
-	}
-
-	@Override
-	public void stateChanged(ChangeEvent e) {
-		
-		if(e.getSource().equals(waterTrailSlider)) {
-			
-			environment.setWaterTrail(waterTrailSlider.getValue());
-			
-		} else if(e.getSource().equals(waterSourceAmountSlider)) {
-			
-			environment.setWaterSourceAmount(waterSourceAmountSlider.getValue());
-			
-		} else if(e.getSource().equals(plantsSlider)) {
-			
-			environment.setPlantsFactor(plantsSlider.getValue());
-			
-		} else if(e.getSource().equals(shadowBrightnessSlider)) {
-			
-			environment.setShadowBrightness(shadowBrightnessSlider.getValue());
-			
-		} else if(e.getSource().equals(inclinationBrightnessSlider)) {
-			
-			double f = (double)inclinationBrightnessSlider.getValue() / 100.0;
-			environment.setInclinationBrightnessFactor(f);
-
-		} else if(e.getSource().equals(waterInterpolationSlider)) {
-			
-			double f = (double)waterInterpolationSlider.getValue() / 100.0;
-			environment.setWaterInterpolationFactor(f);
+		} else if(e.getSource().equals(structureButton)) {
+			structure = true;
 		}
 	}
 	
@@ -482,12 +435,10 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 					smooth(res, 0);
 				}
 				
-				if(wire) {
-					res.setStructure(new Wire(res));
-				}
-				
-				if(plant) {
-					res.setStructure(new PowerPlant(res));
+				if(structure) {
+					
+					StructureTemplate template = (StructureTemplate)structureSelector.getSelectedItem();
+					res.setStructure(template.createStructure(res));
 				}
 			}
 			
@@ -552,5 +503,31 @@ public class Gaia extends JFrame implements KeyListener, MouseListener, MouseMot
 		
 		Gaia e = new Gaia();
 		e.setVisible(true);
+	}
+	
+	private static class StructureTemplate {
+		
+		private String name = null;
+		private Class type = null;
+		
+		public StructureTemplate(String name, Class type) {
+			this.name = name;
+			this.type = type;
+		}
+		
+		@Override
+		public String toString() {
+			return name;
+		}
+		
+		public Structure createStructure(Resource resource) {
+			
+			try {
+				return (Structure)type.getConstructor(Resource.class).newInstance(resource);
+				
+			} catch(Throwable t) { }
+			
+			return null;
+		}
 	}
 }

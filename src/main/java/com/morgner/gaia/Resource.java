@@ -30,7 +30,7 @@ public class Resource implements Entity {
 	public static final int DEAD_PLANTS     = 10;
 	public static final int HUMUS           = 11;
 	public static final int CURRENT         = 12;
-	public static final int VOLTAGE         = 13;
+	public static final int RESISTANCE      = 13;
 	
 	public static final int RESOURCES = 14;
 	
@@ -540,6 +540,9 @@ public class Resource implements Entity {
 			}
 			
 		} else {
+			
+			// no water, no flow!
+			setResource(FLOW, 0);
 
 			if(hasResource(MOISTURE) || hasResource(WATER_TRAIL)) {
 
@@ -558,6 +561,12 @@ public class Resource implements Entity {
 			}
 		}
 
+		// remove current and resistance if structures are gone
+		if(!hasStructure()) {
+			setResource(Resource.CURRENT,    0);
+			setResource(Resource.RESISTANCE, 0);
+		}
+		
 		// moisture effect randomly
 		if(Gaia.rand.nextDouble() > 0.95) {
 
